@@ -13,11 +13,12 @@ Embeddings are stored in the vector database Milvus, with different Milvus "coll
 
 ### References
 
-- Milvus Image Similarity Search example: https://milvus.io/docs/image_similarity_search.md
+- Milvus Image Similarity Search example: https://milvus.io/docs/image_similarity_search.md  
+  - Note: as of version 2.2 there is no need to use a MySQL database to store URLs because the Milvus field schema now supoorts the VARCHAR data type as primary key. Please see the Python API reference: https://milvus.io/api-reference/pymilvus/v2.2.0/Schema/FieldSchema.md.  
+- Milvus Image Deduplication: https://milvus.io/docs/image_deduplication_system.md This can be used for near-exact image matching
+- Milvus Python SDK: https://milvus.io/api-reference/pymilvus/v2.2.0/About.md
+- CLIP image search: https://github.com/kingyiusuen/clip-image-search
 
- Note: as of version 2.2 there is no need to use a MySQL database to search for similar images because the field schema now supoorts the VARCHAR data type as primary key. Please see the Python API reference: https://milvus.io/api-reference/pymilvus/v2.2.0/Schema/FieldSchema.md. 
-
-- Image Deduplication: https://milvus.io/docs/image_deduplication_system.md This can be used for near-exact image matching 
 
 ## Docker configuration
 
@@ -30,7 +31,15 @@ Embeddings are stored in the vector database Milvus, with different Milvus "coll
 - Only JPEG images are supported
 - Images must have their dimensions above 150 x 150 pixels, otherwise the API will return an error `IMAGE_SIZE_TOO_SMALL`
 - If one of the image dimension exceeds 1000 pixels, Idios will resize the image so that the maximum dimension is set to 1000 pixels and the original aspect ratio is kept.
-- Some image links may be permalinks from library or image collections 
+- Some image links may be permalinks from library or museum image collections or be hosted on IIIF servers that only accept certain request headers, additionally, the URL may return a 303 redirect to point you to the actual image. The API should be able to handle the redirect silently and still use the original URL as the primary key.
+
+The following (initial) images can be used for testing:
+
+- https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
+- https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg
+- https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg
+
+
 
 
 # HTTP API
