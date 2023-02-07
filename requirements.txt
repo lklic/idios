@@ -1,0 +1,6 @@
+flask
+pillow
+numpy
+pymilvus==1.1.2
+requests
+clip
