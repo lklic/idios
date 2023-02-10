@@ -2,13 +2,18 @@
 
 ## Idios is a reverse image search application with an HTTP API that allows you to search for images that are visually similar.
 
-## Features
+
+### Features
  - Fully Dockerized for quick deployment
- - Simple GUI to upload images and test
+ - Simple GUI to upload images and test functionality
  - HTTP API for sending requests programmatically
 
+### Components
 
-Embeddings are stored in the vector database Milvus, with different Milvus "collections" of embeddings that are mapped to a specific model in Idios. The architecture is extensible in a way to allows new models to be added in the future. For Version 1.0 OpenAI's CLIP model will be used as the primary model. Images have their embedding extracted based on a specific model, and then are added to a collection for storage and search. Each model has a corresponding Milvus collection to which it is mapped. The "index" corresponds to a mapping between a specific model (for extracting embeddings) and a Milvus collection
+ - Dockerized instance of Milvus
+ - Python app with API, supporting multiple models (CLIP, ResNet, etc.)
+ - 
+Embeddings are stored in the vector database Milvus, with different Milvus "collections" of embeddings that are mapped to a specific model in Idios. The architecture is extensible in a way to allows new models to be added in the future. For Version 1.0 OpenAI's CLIP model will be used as the primary model. Images have their embedding extracted based on a specific model, and then are added to a collection for storage and search. Each model has a corresponding Milvus collection to which it is mapped. The model has a corresponding collection name in Milvus, and is specified in the API call.
 
 
 ### References
@@ -40,20 +45,28 @@ The following (initial) images can be used for testing:
 - https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg
 
 
-
-
 # HTTP API
 
 Idios can be controlled using a simple HTTP API that listens on port 4213, responses are formatted in JSON.
 
-Each image has an associated ID (`VARCHAR`) which is the URL of the image, and serves as the primary key in Milvus collection. For consistancy, image URLs should not have escape characters.
-
-
-Each image has an associated ID which is the url of the image (string) that serves as the primary key in a Mulvus collection. Optionally, additional metadata can be associated with the image as an arbitrary JSON object.
+Each image has an associated ID (`VARCHAR`) which is the URL of the image, and serves as the primary key in the Milvus collection. For consistancy, image URLs should not have escape characters. Optionally, additional metadata can be associated with the image as an arbitrary JSON object.
 
 # API Reference
 
 Idios has a simple HTTP API. All request parameters are specified via `application/x-www-form-urlencoded`.
+
+The name of the model is mapped to a specific Milvus collection should be specified as part of the URL:
+  
+  e.g. `http:/idios.domain.com:4213/{model}/search`
+
+
+Supported CLIP Models (v.1.0):
+
+* ViT-L14
+* ViT-B32
+
+
+## API Methods
 
 * [POST `/add`](#post-add)
 * [DELETE `/delete`](#delete-delete)
@@ -80,8 +93,15 @@ Adds an image embedding to the index.
   An arbitrary JSON object featuring meta data to attach to the image.
 
 
-* Answer type: "IMAGE_ADDED"
-* Possible error types: "IMAGE_NOT_DECODED", "IMAGE_SIZE_TOO_SMALL", "IMAGE_DOWNLOADER_HTTP_ERROR" with the HTTP status code in the "image_downloader_http_response_code" field.
+* **Possible error types** "IMAGE_NOT_DECODED", "IMAGE_SIZE_TOO_SMALL", "IMAGE_DOWNLOADER_HTTP_ERROR" with the HTTP status code in the "image_downloader_http_response_code" field.
+
+
+#### Example API call via CURL
+
+```
+curl -X POST -d 'url=https://iiif.example.net/iiif/2/image1.jpg/full/full/0/default.jpg' http:/idios.domain.com:4213/ViT-L14/search
+```
+
 
 #### Example Response
 
@@ -237,47 +257,4 @@ Check for the health of the server.
   "result": []
 }
 ```
-
-
-
-
-
-
-Idios can have any number of indexes, each one is stored in a Mulvus “collection” and can be specified specified through the http API as such:
-
-“http://localhost:4212/index/“
-
-Where “index” is the name of miles collection.
-
-
-Adding an image to the index
-This call allows to add the embedding of an image in the index to make it available for searching. You need to provide the compressed binary data of the image and an id to identify it.
-* Path: /index/image
-* HTTP method: PUT
-* Data: JSON containing the URL of the image in the "url" field.
-* Answer type: "IMAGE_ADDED"
-* Possible error types: "IMAGE_NOT_DECODED", "IMAGE_SIZE_TOO_SMALL", "IMAGE_DOWNLOADER_HTTP_ERROR" with the HTTP status code in the "image_downloader_http_response_code" field.
-
-Removing an image from the index
-This call removes the signature of an image in the index thanks to its id. Be careful to not call often this method if your index is big because it is currently very slow.
-* Path: /index/image
-* HTTP method: DELETE
-* Answer type: "IMAGE_REMOVED"
-
-Search request
-This call performs a search in the index thanks to a request image. It returns the id of the matched images from the most to the least relevant ones.
-
-* Path: /index/searcher
-* HTTP method: POST
-* Data: a JSON containing the URL of the image in the "url" field.
-* Answer: "SEARCH_RESULTS" as type field and a list of the the matched image ids from the most to the least relevant one in the "image_ids" field
-
-Ping
-This call sends a simple PING command that answers with a PONG.
-* Path: /
-* HTTP method: POST
-* Data: a json with a "type" field of value "PONG"
-* Answer type: "PONG"
-* Example:Command line:curl -X POST -d '{"type":"PING"}' http://localhost:4213/Answer:{ "type" : "PONG"}
-
 
