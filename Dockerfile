@@ -1,19 +1,19 @@
-FROM python:3.8
+FROM python:3.10
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /api
 
 # Copy the requirements file
-COPY requirements.txt .
+COPY requirements.txt requirements-dev.txt .
 
 # Install the dependencies
-RUN pip install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements-dev.txt
 
 # Copy the application code
-COPY . .
+COPY api .
 
 # Expose the port for the application
 EXPOSE 4213
 
 # Start the application
-CMD ["python", "app.py"]
+CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "4213"]

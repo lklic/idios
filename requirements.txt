@@ -1,6 +1,7 @@
-flask
+fastapi[all]
+
+torch
+transformers
 pillow
-numpy
-pymilvus==1.1.2
-requests
-clip
+
+pymilvus
