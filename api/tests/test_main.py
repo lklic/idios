@@ -87,7 +87,7 @@ def test_image_too_small():
             {
                 "loc": ["body", "url"],
                 "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "value_error.image_too_small",
+                "type": "parameter_error",
             }
         ]
     } == response.json()
@@ -105,7 +105,7 @@ def test_image_left_too_small():
             {
                 "loc": ["body", "url_left"],
                 "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "value_error.image_too_small",
+                "type": "parameter_error",
             }
         ]
     } == response.json()
@@ -123,7 +123,7 @@ def test_image_right_too_small():
             {
                 "loc": ["body", "url_right"],
                 "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "value_error.image_too_small",
+                "type": "parameter_error",
             }
         ]
     } == response.json()

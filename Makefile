@@ -4,14 +4,14 @@ WATCH_CMD=find -not -path '*/.*' -not -path '*__pycache__*' | entr -cd make watc
 watch:
 	${WATCH_CMD} ; while [ $$? -ne 0 ]; do ${WATCH_CMD}; done
 
-watched: black
-	docker compose exec api python -m pytest --testmon --tb=short
+watched: black build
+	docker compose run --rm api python -m pytest --testmon --tb=short
 
 shell:
 	docker compose run --rm api bash
 
 black:
-	docker run --rm --volume $$(pwd):/src --workdir /src pyfound/black:latest_release black .
+	docker run --rm --volume $$(pwd)/api:/src --workdir /src pyfound/black:latest_release black .
 
 build:
 	docker compose build

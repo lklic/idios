@@ -2,11 +2,8 @@ import requests
 from PIL import Image
 
 import torch
-import warnings
 
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from transformers import CLIPModel, CLIPProcessor
+from transformers import CLIPModel, CLIPProcessor
 
 
 def load_image_from_url(url):
@@ -23,8 +20,7 @@ def load_image_from_url(url):
 
 # https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py
 class CLIPFeatures:
-    def __init__(self, model_name, dim):
-        self.dim = dim
+    def __init__(self, model_name):
         self.model = CLIPModel.from_pretrained(model_name)
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -51,10 +47,8 @@ class CLIPFeatures:
     def extract(self, image):
         return self.get_image_features(image)[0]
 
-    @staticmethod
-    def create_b32():
-        return CLIPFeatures("openai/clip-vit-base-patch32", 512)
 
-    @staticmethod
-    def create_l14():
-        return CLIPFeatures("openai/clip-vit-large-patch14", 4096)
+features = {
+    "vit_b32": CLIPFeatures("openai/clip-vit-base-patch32"),
+    # "vit_l14": CLIPFeatures("openai/clip-vit-large-patch14"),
+}

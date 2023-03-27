@@ -1,7 +1,5 @@
-fastapi[all]
+pika
 
 torch
 transformers
 pillow
-
-pymilvus

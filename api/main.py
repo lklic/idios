@@ -7,38 +7,51 @@ import json
 import numpy as np
 from pymilvus import utility
 
-from features import CLIPFeatures, load_image_from_url
 from milvus import get_collection
-
-features = {
-    "vit_b32": CLIPFeatures.create_b32(),
-    # "vit_l14": CLIPFeatures.create_l14(),
-}
+from features_rpc import FeaturesRpc
 
 collections = {
-    name: get_collection(name, feature.dim) for name, feature in features.items()
+    name: get_collection(name, dim)
+    for name, dim in {
+        "vit_b32": 512,
+        # "vit_l14" : 4096,
+    }.items()
 }
 
 for collection in collections.values():
     collection.load()
 
 metrics = {
-    name: collections[name].index()._index_params["metric_type"]
+    name: collection.index()._index_params["metric_type"]
     for name, collection in collections.items()
 }
 
 
-def image_url_content(url, error_location=["body", "url"]):
+features_rpc = FeaturesRpc()
+
+
+def request_features(model_name, url, error_location=["body", "url"]):
     try:
-        return load_image_from_url(url)
+        return features_rpc(model_name, url)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=[
                 {
                     "loc": error_location,
-                    "msg": e.args[0],
-                    "type": "value_error.image_too_small",
+                    "msg": str(e),
+                    "type": "parameter_error",
+                }
+            ],
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_501_INTERNAL_SERVER_ERROR,
+            detail=[
+                {
+                    "loc": error_location,
+                    "msg": str(e),
+                    "type": "server_error",
                 }
             ],
         )
@@ -51,7 +64,7 @@ app = FastAPI(
 )
 
 
-ModelName = Enum("ModelName", {k: k for k in features.keys()})
+ModelName = Enum("ModelName", {k: k for k in collections.keys()})
 ModelName.__doc__ = (
     "The enumeration of supported models to extract features/embeddings from images"
 )
@@ -121,7 +134,7 @@ class SearchResults(BaseModel):
     summary="Adds an image embedding to the index.",
 )
 async def insert_image(model_name: ModelName, image: ImageAndMetada):
-    embedding = features[model_name.value].extract(image_url_content(image.url))
+    embedding = request_features(model_name.value, image.url)
     collections[model_name.value].insert(
         [[image.url], [embedding], [json.dumps(image.metadata)]]
     )
@@ -134,7 +147,7 @@ async def insert_image(model_name: ModelName, image: ImageAndMetada):
     response_model=SearchResults,
 )
 async def search(model_name: ModelName, image: SingleImage):
-    embedding = features[model_name.value].extract(image_url_content(image.url))
+    embedding = request_features(model_name.value, image.url)
     search_results = collections[model_name.value].search(
         data=[embedding],
         anns_field="embedding",
@@ -167,12 +180,8 @@ async def compare(model_name: ModelName, images: ImagePair):
     # alternatively, we could first try to fetch the embeddings from milvus in
     # case their computation is significantly more expensive than a query
     embedding_left, embedding_right = [
-        features[model_name.value].extract(
-            image_url_content(images.url_left, ["body", "url_left"])
-        ),
-        features[model_name.value].extract(
-            image_url_content(images.url_right, ["body", "url_right"])
-        ),
+        request_features(model_name.value, images.url_left, ["body", "url_left"]),
+        request_features(model_name.value, images.url_right, ["body", "url_right"]),
     ]
 
     # calc_distance() has been removed from milvus
@@ -182,7 +191,7 @@ async def compare(model_name: ModelName, images: ImagePair):
         return np.sum(np.square(np.array(embedding_left) - np.array(embedding_right)))
 
     raise HTTPException(
-        status_code=status.HTTP_501,
+        status_code=status.HTTP_501_INTERNAL_SERVER_ERROR,
         detail=[
             {
                 "loc": [metrics[model_name.value]],

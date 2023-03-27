@@ -54,23 +54,63 @@ services:
       MILVUS_URL: standalone:19530
 
   api:
-    build: .
+    build:
+       context: api
+       dockerfile: ../Dockerfile
     ports:
       - "4213:4213"
     depends_on:
-      - "standalone"
+      standalone:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
     environment:
       MILVUS_URL: standalone:19530
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    volumes:
+      - ./api:/app
+    command: "uvicorn main:app --reload --host 0.0.0.0 --port 4213"
+
+  worker:
+    build:
+       context: api
+       dockerfile: ../Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      PYTHONUNBUFFERED: 1
     volumes:
       - huggingface-cache:/root/.cache/huggingface
-      - ./api:/api
+      - ./api:/app
+    command: "python worker.py"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   etcd:
   minio:
   milvus:
   huggingface-cache:
-
-networks:
-  default:
-    name: milvus
+  rabbitmq:
