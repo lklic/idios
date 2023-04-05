@@ -1,6 +1,6 @@
 # Idios
 
-## Idios is a reverse image search application with an HTTP API that allows you to search for images that are visually similar.
+## Idios is a multi-model reverse image search application with an HTTP API that allows you to search for images that are visually similar.
 
 
 ### Features
