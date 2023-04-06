@@ -1,5 +1,5 @@
 from fastapi import FastAPI, status, HTTPException
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, confloat
 from enum import Enum
 from typing import Literal
 
@@ -93,14 +93,14 @@ class ImagePair(BaseModel):
     url_right: ImageUrl
 
 
-class Distance(BaseModel):
-    __root__: float
+class SimilarityScore(BaseModel):
+    __root__: confloat(ge=0, le=100)
 
 
 class SearchResult(BaseModel):
     url: ImageUrl
     metadata: ImageMetadata | None
-    distance: Distance
+    similarity_score: SimilarityScore
 
 
 class SearchResults(BaseModel):
@@ -142,8 +142,8 @@ async def search(model_name: ModelName, image: SingleImage):
 @app.post(
     "/models/{model_name}/compare",
     tags=["model"],
-    summary="Compute the distance between two images",
-    response_model=Distance,
+    summary="Compute the similarity score between two images",
+    response_model=SimilarityScore,
 )
 async def compare(model_name: ModelName, images: ImagePair):
     # alternatively, we could first try to fetch the embeddings from milvus in

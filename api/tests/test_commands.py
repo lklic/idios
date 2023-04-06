@@ -19,7 +19,7 @@ def test_crud():
 
     assert [
         {
-            "distance": pytest.approx(0.8834905624389648),
+            "similarity": pytest.approx(11.650939784262505),
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
@@ -33,7 +33,7 @@ def test_crud():
 
 
 def test_compare():
-    assert pytest.approx(0.8834906264850583) == commands["compare"](
+    assert pytest.approx(11.650939784262505) == commands["compare"](
         "vit_b32", TEST_URLS[0], TEST_URLS[1]
     )
 

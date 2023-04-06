@@ -138,12 +138,12 @@ def test_search_success(mock_rpc):
         {
             "url": "http://example.com/image1.jpg",
             "metadata": {"tags": ["cat", "cute"]},
-            "distance": 0.1,
+            "similarity_score": 0.1,
         },
         {
             "url": "http://example.com/image2.jpg",
             "metadata": {"tags": ["dog", "cute"]},
-            "distance": 0.2,
+            "similarity_score": 0.2,
         },
     ]
     response = client.post(
@@ -155,12 +155,12 @@ def test_search_success(mock_rpc):
         {
             "url": "http://example.com/image1.jpg",
             "metadata": {"tags": ["cat", "cute"]},
-            "distance": 0.1,
+            "similarity_score": 0.1,
         },
         {
             "url": "http://example.com/image2.jpg",
             "metadata": {"tags": ["dog", "cute"]},
-            "distance": 0.2,
+            "similarity_score": 0.2,
         },
     ]
     mock_rpc.assert_called_once_with(
@@ -189,7 +189,7 @@ def test_search_returns_500_when_rpc_error(mock_rpc):
     )
 
 
-def test_compare_returns_distance(mock_rpc):
+def test_compare_returns_similarity(mock_rpc):
     mock_rpc.return_value = 0.42
     response = client.post(
         "/models/vit_b32/compare",

@@ -28,7 +28,7 @@ def search(model_name, url):
         {
             "url": hit.id,
             "metadata": json.loads(hit.entity.get("metadata")),
-            "distance": hit.distance,
+            "similarity": 100 * (1 - hit.distance),
         }
         for hit in search_results[0]
     ]
@@ -42,7 +42,7 @@ def compare(model_name, url_left, url_right):
     # it's a bit overkill anyway if we don't compare with vectors from the db
     if metrics[model_name] == "L2":
         # _squared_ L2, to be consistent with the distances in milvus' search
-        return np.sum(np.square(np.array(left) - np.array(right)))
+        return 100 * (1 - np.sum(np.square(np.array(left) - np.array(right))))
 
     raise RuntimeError(
         "Distance calculation has not been implemented in the API. "
