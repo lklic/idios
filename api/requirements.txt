@@ -1,5 +1,3 @@
 pika
 
 fastapi[all]
-
-pymilvus

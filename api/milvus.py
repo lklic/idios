@@ -11,6 +11,8 @@ from pymilvus import (
 
 import os
 
+from common import feature_dimensions
+
 
 def ensure_connection():
     if dict(connections.list_connections())["default"] is not None:
@@ -28,7 +30,9 @@ def get_collection(collection_name, dim):
     ensure_connection()
 
     if utility.has_collection(collection_name):
-        return Collection(name=collection_name)
+        collection = Collection(name=collection_name)
+        collection.load()
+        return collection
 
     embedding_field_name = "embedding"
     fields = [
@@ -62,10 +66,21 @@ def get_collection(collection_name, dim):
         "params": {"nlist": 2048},
     }
     collection.create_index(field_name=embedding_field_name, index_params=index_params)
+
+    collection.load()
     return collection
 
 
-def destroy_all_data_from_all_collection_in_the_whole_database():
+def destroy_all_data_from_all_collections_in_the_whole_database():
     ensure_connection()
     for c in utility.list_collections():
         utility.drop_collection(c)
+
+
+collections = {
+    name: get_collection(name, dim) for name, dim in feature_dimensions.items()
+}
+metrics = {
+    name: collection.index()._index_params["metric_type"]
+    for name, collection in collections.items()
+}

@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from ..main import app
@@ -6,11 +7,10 @@ from ..main import app
 client = TestClient(app)
 
 
-TEST_URLS = [
-    "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg",
-    "https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg",
-    "https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg",
-]
+@pytest.fixture
+def mock_rpc():
+    with patch("rpc_client.RpcClient.__call__") as mock_rpc:
+        yield mock_rpc
 
 
 def test_ping():
@@ -20,110 +20,216 @@ def test_ping():
     assert response.text == '"pong"'
 
 
-def test_crud():
+def test_add_image_success(mock_rpc):
+    mock_rpc.return_value = None
     response = client.post(
         "/models/vit_b32/add",
         json={
-            "url": TEST_URLS[0],
-            "metadata": {"tags": ["text"], "language": "japanese"},
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
         },
     )
     assert response.status_code == 204
-
-    response = client.get("/models/vit_b32/urls")
-    assert response.status_code == 200
-    assert [TEST_URLS[0]] == response.json()
-
-    # response = client.get("/models/vit_b32/count")
-    # assert response.status_code == 200
-    # assert 1 == response.json()
-
-    response = client.post(
-        "/models/vit_b32/search",
-        json={"url": TEST_URLS[1]},
+    mock_rpc.assert_called_once_with(
+        "insert_image",
+        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
     )
-    assert response.status_code == 200
-    assert [
-        {
-            "distance": pytest.approx(0.8834905624389648),
-            "metadata": {"tags": ["text"], "language": "japanese"},
-            "url": TEST_URLS[0],
-        }
-    ] == response.json()
-
-    response = client.post(
-        "/models/vit_b32/remove",
-        json={"url": TEST_URLS[0]},
-    )
-    assert response.status_code == 204
-
-    response = client.get("/models/vit_b32/urls")
-    assert response.status_code == 200
-    assert [] == response.json()
-
-    # response = client.get("/models/vit_b32/count")
-    # assert response.status_code == 200
-    # assert 0 == response.json()
 
 
-def test_compare():
-    response = client.post(
-        "/models/vit_b32/compare",
-        json={"url_left": TEST_URLS[0], "url_right": TEST_URLS[1]},
-    )
-    assert response.status_code == 200
-    assert pytest.approx(0.8834906264850583) == response.json()
-
-
-def test_image_too_small():
+def test_add_image_invalid_url(mock_rpc):
     response = client.post(
         "/models/vit_b32/add",
-        json={"url": "https://picsum.photos/128"},
+        json={"url": "invalid_url", "metadata": {"tags": ["cat", "cute"]}},
     )
-    print(response.json())
     assert response.status_code == 422
-    assert {
+    assert response.json() == {
         "detail": [
             {
                 "loc": ["body", "url"],
-                "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "parameter_error",
+                "msg": "invalid or missing URL scheme",
+                "type": "value_error.url.scheme",
             }
         ]
-    } == response.json()
+    }
+    mock_rpc.assert_not_called()
 
 
-def test_image_left_too_small():
+def test_add_image_small_dimensions(mock_rpc):
+    mock_rpc.side_effect = ValueError("Image size too small")
+    response = client.post(
+        "/models/vit_b32/add",
+        json={
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+        },
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [{"msg": "Image size too small", "type": "parameter_error"}]
+    }
+    mock_rpc.assert_called_once_with(
+        "insert_image",
+        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
+    )
+
+
+def test_add_image_server_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Server error")
+    response = client.post(
+        "/models/vit_b32/add",
+        json={
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+        },
+    )
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": [{"msg": "Server error", "type": "server_error"}]
+    }
+    mock_rpc.assert_called_once_with(
+        "insert_image",
+        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
+    )
+
+
+def test_search_success(mock_rpc):
+    mock_rpc.return_value = [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "distance": 0.1,
+        },
+        {
+            "url": "http://example.com/image2.jpg",
+            "metadata": {"tags": ["dog", "cute"]},
+            "distance": 0.2,
+        },
+    ]
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"url": "http://example.com/query.jpg"},
+    )
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "distance": 0.1,
+        },
+        {
+            "url": "http://example.com/image2.jpg",
+            "metadata": {"tags": ["dog", "cute"]},
+            "distance": 0.2,
+        },
+    ]
+    mock_rpc.assert_called_once_with(
+        "search", ["vit_b32", "http://example.com/query.jpg"]
+    )
+
+
+def test_search_returns_422_when_invalid_url(mock_rpc):
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"url": "not_a_url"},
+    )
+    assert response.status_code == 422
+    mock_rpc.assert_not_called()
+
+
+def test_search_returns_500_when_rpc_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Invalid argument")
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"url": "http://example.com/query.jpg"},
+    )
+    assert response.status_code == 500
+    mock_rpc.assert_called_once_with(
+        "search", ["vit_b32", "http://example.com/query.jpg"]
+    )
+
+
+def test_compare_returns_distance(mock_rpc):
+    mock_rpc.return_value = 0.42
     response = client.post(
         "/models/vit_b32/compare",
-        json={"url_left": "https://picsum.photos/128", "url_right": TEST_URLS[1]},
+        json={"url_left": "http://left.org", "url_right": "http://right.org"},
     )
-    print(response.json())
-    assert response.status_code == 422
-    assert {
-        "detail": [
-            {
-                "loc": ["body", "url_left"],
-                "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "parameter_error",
-            }
-        ]
-    } == response.json()
+    assert response.status_code == 200
+    assert pytest.approx(0.42) == response.json()
+    mock_rpc.assert_called_once_with(
+        "compare", ["vit_b32", "http://left.org", "http://right.org"]
+    )
 
 
-def test_image_right_too_small():
+def test_compare_returns_422_when_invalid_url(mock_rpc):
     response = client.post(
         "/models/vit_b32/compare",
-        json={"url_right": "https://picsum.photos/128", "url_left": TEST_URLS[0]},
+        json={"url_left": "not_a_url", "url_right": "http://right.org"},
     )
-    print(response.json())
     assert response.status_code == 422
-    assert {
-        "detail": [
-            {
-                "loc": ["body", "url_right"],
-                "msg": "Images must have their dimensions above 150 x 150 pixels",
-                "type": "parameter_error",
-            }
-        ]
-    } == response.json()
+    mock_rpc.assert_not_called()
+
+
+def test_compare_returns_500_when_rpc_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Internal server error")
+    response = client.post(
+        "/models/vit_b32/compare",
+        json={"url_left": "http://left.org", "url_right": "http://right.org"},
+    )
+    assert response.status_code == 500
+    mock_rpc.assert_called_once_with(
+        "compare", ["vit_b32", "http://left.org", "http://right.org"]
+    )
+
+
+def test_remove_image_returns_204(mock_rpc):
+    mock_rpc.return_value = None
+    response = client.post(
+        "/models/vit_b32/remove",
+        json={"url": "http://example.com/image.jpg"},
+    )
+    assert response.status_code == 204
+    mock_rpc.assert_called_once_with(
+        "remove_image", ["vit_b32", "http://example.com/image.jpg"]
+    )
+
+
+def test_remove_image_returns_422_when_invalid_url(mock_rpc):
+    response = client.post(
+        "/models/vit_b32/remove",
+        json={"url": "not_a_url"},
+    )
+    assert response.status_code == 422
+    mock_rpc.assert_not_called()
+
+
+def test_remove_image_returns_500_when_rpc_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Invalid argument")
+    response = client.post(
+        "/models/vit_b32/remove",
+        json={"url": "http://example.com/image.jpg"},
+    )
+    assert response.status_code == 500
+    mock_rpc.assert_called_once_with(
+        "remove_image", ["vit_b32", "http://example.com/image.jpg"]
+    )
+
+
+def test_list_urls_returns_urls(mock_rpc):
+    mock_rpc.return_value = [
+        "http://example.com/image1.jpg",
+        "http://example.com/image2.jpg",
+    ]
+    response = client.get("/models/vit_b32/urls")
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+    assert response.json()[0] == "http://example.com/image1.jpg"
+    assert response.json()[1] == "http://example.com/image2.jpg"
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32"])
+
+
+def test_list_urls_returns_500_when_rpc_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Internal server error")
+    response = client.get("/models/vit_b32/urls")
+    assert response.status_code == 500
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32"])

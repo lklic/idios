@@ -1,11 +1,10 @@
 import os
 import pika
-import json
 import http.server
 import socketserver
 import threading
-from features import load_image_from_url, features
-
+import json
+from commands import commands
 
 connection = pika.BlockingConnection(
     pika.URLParameters(
@@ -20,9 +19,9 @@ channel.queue_declare(queue="features_rpc_queue")
 
 def on_request(ch, method, props, body):
     try:
-        model_name, url = json.loads(body)
-        print(f'features[{model_name}].extract(load_image_from_url("{url}"))')
-        response = json.dumps(features[model_name].extract(load_image_from_url(url)))
+        command, args = json.loads(body)
+        print(f"{command}({', '.join(args)})")
+        response = json.dumps(commands[command](*args))
     except Exception as e:
         print(e)
         response = json.dumps(

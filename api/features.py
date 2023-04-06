@@ -8,6 +8,7 @@ from transformers import CLIPModel, CLIPProcessor
 
 def load_image_from_url(url):
     MIN_SIZE = 150
+    # not necessarily useful, as feature preprocessing might take care of it
     MAX_SIZE = 1000
 
     with Image.open(requests.get(url, stream=True).raw) as image:

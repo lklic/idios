@@ -2,7 +2,6 @@ version: '3.5'
 
 services:
   etcd:
-    container_name: milvus-etcd
     image: quay.io/coreos/etcd:v3.5.0
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
@@ -14,7 +13,6 @@ services:
     command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
 
   minio:
-    container_name: milvus-minio
     image: minio/minio:RELEASE.2022-03-17T06-34-49Z
     environment:
       MINIO_ACCESS_KEY: minioadmin
@@ -30,8 +28,7 @@ services:
       timeout: 20s
       retries: 3
 
-  standalone:
-    container_name: milvus-standalone
+  milvus:
     image: milvusdb/milvus:v2.2.2
     command: ["milvus", "run", "standalone"]
     environment:
@@ -45,48 +42,63 @@ services:
     depends_on:
       - "etcd"
       - "minio"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/api/v1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   attu:
     image: zilliz/attu:latest
     ports:
       - "3000:3000"
     environment:
-      MILVUS_URL: standalone:19530
+      MILVUS_URL: milvus:19530
 
   api:
     build:
-       context: api
-       dockerfile: ../Dockerfile
+       context: ../api
+       dockerfile: ../docker/Dockerfile
     ports:
       - "4213:4213"
     depends_on:
-      standalone:
-        condition: service_started
       rabbitmq:
         condition: service_healthy
       worker:
         condition: service_healthy
     environment:
-      MILVUS_URL: standalone:19530
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     volumes:
-      - ./api:/app
+      - ../api:/app
+    working_dir: /app
     command: "uvicorn main:app --reload --host 0.0.0.0 --port 4213"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4213/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   worker:
     build:
-       context: api
-       dockerfile: ../Dockerfile
+       context: ../api
+       dockerfile: ../docker/Dockerfile
+       args:
+         UID: 1000
     depends_on:
+      milvus:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     environment:
+      MILVUS_URL: milvus:19530
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       PYTHONUNBUFFERED: 1
     volumes:
-      - huggingface-cache:/root/.cache/huggingface
-      - ./api:/app
+      - huggingface-cache:/home/user/.cache/huggingface
+      - ../api:/app
+    working_dir: /app
     command: "python worker.py"
+    stop_signal: SIGINT
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s

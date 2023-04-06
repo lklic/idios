@@ -1,44 +1,25 @@
-from fastapi import FastAPI, status, Response, HTTPException
-from pydantic import BaseModel, Field, HttpUrl
+from fastapi import FastAPI, status, HTTPException
+from pydantic import BaseModel, HttpUrl
 from enum import Enum
 from typing import Literal
 
 import json
-import numpy as np
-from pymilvus import utility
 
-from milvus import get_collection
-from features_rpc import FeaturesRpc
-
-collections = {
-    name: get_collection(name, dim)
-    for name, dim in {
-        "vit_b32": 512,
-        # "vit_l14" : 4096,
-    }.items()
-}
-
-for collection in collections.values():
-    collection.load()
-
-metrics = {
-    name: collection.index()._index_params["metric_type"]
-    for name, collection in collections.items()
-}
+from common import feature_dimensions
+from rpc_client import RpcClient
 
 
-features_rpc = FeaturesRpc()
+rpc = RpcClient()
 
 
-def request_features(model_name, url, error_location=["body", "url"]):
+def try_rpc(command, args):
     try:
-        return features_rpc(model_name, url)
+        return rpc(command, args)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=[
                 {
-                    "loc": error_location,
                     "msg": str(e),
                     "type": "parameter_error",
                 }
@@ -46,10 +27,9 @@ def request_features(model_name, url, error_location=["body", "url"]):
         )
     except RuntimeError as e:
         raise HTTPException(
-            status_code=status.HTTP_501_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=[
                 {
-                    "loc": error_location,
                     "msg": str(e),
                     "type": "server_error",
                 }
@@ -64,7 +44,7 @@ app = FastAPI(
 )
 
 
-ModelName = Enum("ModelName", {k: k for k in collections.keys()})
+ModelName = Enum("ModelName", {k: k for k in feature_dimensions.keys()})
 ModelName.__doc__ = (
     "The enumeration of supported models to extract features/embeddings from images"
 )
@@ -134,10 +114,7 @@ class SearchResults(BaseModel):
     summary="Adds an image embedding to the index.",
 )
 async def insert_image(model_name: ModelName, image: ImageAndMetada):
-    embedding = request_features(model_name.value, image.url)
-    collections[model_name.value].insert(
-        [[image.url], [embedding], [json.dumps(image.metadata)]]
-    )
+    try_rpc("insert_image", [model_name.value, image.url, json.dumps(image.metadata)])
 
 
 @app.post(
@@ -147,27 +124,7 @@ async def insert_image(model_name: ModelName, image: ImageAndMetada):
     response_model=SearchResults,
 )
 async def search(model_name: ModelName, image: SingleImage):
-    embedding = request_features(model_name.value, image.url)
-    search_results = collections[model_name.value].search(
-        data=[embedding],
-        anns_field="embedding",
-        param={
-            "metric_type": metrics[model_name.value],
-            "params": {"nprobe": 10},
-        },
-        output_fields=["metadata"],
-        limit=10,
-        expr=None,
-        consistency_level="Strong",  # https://milvus.io/docs/consistency.md
-    )
-    return [
-        {
-            "url": hit.id,
-            "metadata": json.loads(hit.entity.get("metadata")),
-            "distance": hit.distance,
-        }
-        for hit in search_results[0]
-    ]
+    return try_rpc("search", [model_name.value, image.url])
 
 
 @app.post(
@@ -179,30 +136,7 @@ async def search(model_name: ModelName, image: SingleImage):
 async def compare(model_name: ModelName, images: ImagePair):
     # alternatively, we could first try to fetch the embeddings from milvus in
     # case their computation is significantly more expensive than a query
-    embedding_left, embedding_right = [
-        request_features(model_name.value, images.url_left, ["body", "url_left"]),
-        request_features(model_name.value, images.url_right, ["body", "url_right"]),
-    ]
-
-    # calc_distance() has been removed from milvus
-    # it's a bit overkill anyway if we don't compare with vectors from the db
-    if metrics[model_name.value] == "L2":
-        # squared L2, to be consistent with the distances in milvus' search
-        return np.sum(np.square(np.array(embedding_left) - np.array(embedding_right)))
-
-    raise HTTPException(
-        status_code=status.HTTP_501_INTERNAL_SERVER_ERROR,
-        detail=[
-            {
-                "loc": [metrics[model_name.value]],
-                "msg": (
-                    "Distance calculation has not been implemented in the API. "
-                    "Please contact the administrator."
-                ),
-                "type": "not_implemented.distance",
-            }
-        ],
-    )
+    return try_rpc("compare", [model_name.value, images.url_left, images.url_right])
 
 
 @app.get(
@@ -212,13 +146,7 @@ async def compare(model_name: ModelName, images: ImagePair):
     response_model=list[ImageUrl],
 )
 async def list_urls(model_name: ModelName):
-    return [
-        result["url"]
-        for result in collections[model_name.value].query(
-            'url > ""',
-            consistency_level="Strong",  # https://milvus.io/docs/consistency.md
-        )
-    ]
+    return try_rpc("list_urls", [model_name.value])
 
 
 # @app.get(
@@ -237,12 +165,7 @@ async def list_urls(model_name: ModelName):
     summary="Remove an image embedding from the index.",
 )
 async def remove_image(model_name: ModelName, image: SingleImage):
-    # Milvus only supports deleting entities with clearly specified primary
-    # keys, which can be achieved merely with the term expression in. Other
-    # operators can be used only in query or scalar filtering in vector search.
-    # See Boolean Expression Rules for more information.
-    # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
-    collections[model_name.value].delete(f'url in ["{image.url}"]')
+    return try_rpc("remove_image", [model_name.value, image.url])
 
 
 @app.get("/ping", tags=["misc"], response_model=Literal["pong"])

@@ -1,5 +1,7 @@
 pika
 
+pymilvus
+
 torch
 transformers
 pillow
