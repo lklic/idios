@@ -5,7 +5,7 @@ from typing import Literal
 
 import json
 
-from common import feature_dimensions
+from common import feature_dimensions, MAX_METADATA_LENGTH
 from rpc_client import RpcClient
 
 
@@ -114,7 +114,19 @@ class SearchResults(BaseModel):
     summary="Adds an image embedding to the index.",
 )
 async def insert_image(model_name: ModelName, image: ImageAndMetada):
-    try_rpc("insert_image", [model_name.value, image.url, json.dumps(image.metadata)])
+    metadata_string = json.dumps(image.metadata)
+    if len(metadata_string) > MAX_METADATA_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=[
+                {
+                    "loc": ["body", "metadata"],
+                    "msg": f"metadata json too long ({len(metadata_string)} > {MAX_METADATA_LENGTH})",
+                    "type": "value_error.metadata_json_too_long",
+                }
+            ],
+        )
+    try_rpc("insert_image", [model_name.value, image.url, metadata_string])
 
 
 @app.post(

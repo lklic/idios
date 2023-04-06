@@ -11,7 +11,7 @@ from pymilvus import (
 
 import os
 
-from common import feature_dimensions
+from common import feature_dimensions, MAX_METADATA_LENGTH
 
 
 def ensure_connection():
@@ -54,7 +54,7 @@ def get_collection(collection_name, dim):
             name="metadata",
             dtype=DataType.VARCHAR,
             description="metadata",
-            max_length=5000,
+            max_length=MAX_METADATA_LENGTH,
         ),
     ]
     schema = CollectionSchema(fields=fields, description="reverse image search")

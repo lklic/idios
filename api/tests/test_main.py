@@ -54,6 +54,47 @@ def test_add_image_invalid_url(mock_rpc):
     mock_rpc.assert_not_called()
 
 
+def test_add_image_invalid_metadata_json(mock_rpc):
+    response = client.post(
+        "/models/vit_b32/add",
+        content='{"url": "https://example.com/image.jpg", "metadata": "invalid json string"}',
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["body", "metadata"],
+                "msg": "value is not a valid dict",
+                "type": "type_error.dict",
+            }
+        ]
+    }
+    mock_rpc.assert_not_called()
+
+
+def test_add_image_metadata_too_long(mock_rpc):
+    response = client.post(
+        "/models/vit_b32/add",
+        json={
+            "url": "http://example.com/image.jpg",
+            "metadata": {
+                "chicken?": "chicken" * (int(2**16 / 7) - 2),
+            },
+        },
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["body", "metadata"],
+                "msg": "metadata json too long (65536 > 65535)",
+                "type": "value_error.metadata_json_too_long",
+            }
+        ]
+    }
+    mock_rpc.assert_not_called()
+
+
 def test_add_image_small_dimensions(mock_rpc):
     mock_rpc.side_effect = ValueError("Image size too small")
     response = client.post(
