@@ -9,6 +9,7 @@ from pymilvus import (
 )
 
 import pytest
+import uuid
 
 
 def test_ensure_connection():
@@ -41,3 +42,28 @@ def test_get_collection():
     } == collection.index()._index_params
     utility.drop_collection(collection_name)
     assert collection_name not in utility.list_collections()
+
+
+def test_query_results_are_sorted_by_pk():
+    collection_name = "test_collection_to_remove"
+    if collection_name in utility.list_collections():
+        utility.drop_collection(collection_name)
+    assert collection_name not in utility.list_collections()
+    collection = get_collection(collection_name, 42)
+
+    urls = [str(uuid.uuid4()) for _ in range(10)]
+    if sorted(urls) == urls:
+        urls[0], urls[1] = urls[1], urls[0]
+
+    for url in urls:
+        collection.insert([[url], [[0] * 42], ["null"]])
+
+    assert sorted(urls) == [
+        search_result["url"]
+        for search_result in collection.query(
+            f'url > ""',
+            consistency_level="Strong",
+        )
+    ]
+
+    utility.drop_collection(collection_name)

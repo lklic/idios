@@ -70,6 +70,19 @@ Assumptions
         )
 
 
+class Cursor(str):
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(
+            title="Enumeration cursor",
+            description="""
+The cursor parameter is used for pagination purposes to allow clients to retrieve a large set of results in smaller, more manageable chunks. The cursor is a string that represents the position of the last item returned in the previous API call.
+
+When making a request to retrieve a set of images, the client can include the cursor parameter in the request to specify where in the set of results they want to start from. The API will return a subset of the results starting after the url specified by the cursor.
+""",
+        )
+
+
 class ImageMetadata(dict):
     @classmethod
     def __modify_schema__(cls, field_schema):
@@ -95,6 +108,10 @@ class ImagePair(BaseModel):
 
 class SimilarityScore(BaseModel):
     __root__: confloat(ge=0, le=100)
+
+
+class Pagination(BaseModel):
+    cursor: Cursor
 
 
 class SearchResult(BaseModel):
@@ -151,14 +168,16 @@ async def compare(model_name: ModelName, images: ImagePair):
     return try_rpc("compare", [model_name.value, images.url_left, images.url_right])
 
 
-@app.get(
+@app.post(
     "/models/{model_name}/urls",
     tags=["model"],
     summary="List all images",
     response_model=list[ImageUrl],
 )
-async def list_urls(model_name: ModelName):
-    return try_rpc("list_urls", [model_name.value])
+async def list_urls(model_name: ModelName, pagination: Pagination | None = None):
+    return try_rpc(
+        "list_urls", [model_name.value, pagination.cursor if pagination else None]
+    )
 
 
 # @app.get(

@@ -63,3 +63,14 @@ def test_image_right_too_small():
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
     )
+
+
+def test_list_with_cursor():
+    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
+    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
+
+    assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32", TEST_URLS[1])
+
+    commands["remove_image"]("vit_b32", TEST_URLS[1])
+    commands["remove_image"]("vit_b32", TEST_URLS[0])

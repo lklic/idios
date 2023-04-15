@@ -95,6 +95,29 @@ components:
       enum:
       - vit_b32
       title: ModelName
+    Pagination:
+      properties:
+        cursor:
+          description: '
+
+            The cursor parameter is used for pagination purposes to allow clients
+            to retrieve a large set of results in smaller, more manageable chunks.
+            The cursor is a string that represents the position of the last item returned
+            in the previous API call.
+
+
+            When making a request to retrieve a set of images, the client can include
+            the cursor parameter in the request to specify where in the set of results
+            they want to start from. The API will return a subset of the results starting
+            after the url specified by the cursor.
+
+            '
+          title: Enumeration cursor
+          type: string
+      required:
+      - cursor
+      title: Pagination
+      type: object
     SearchResult:
       properties:
         metadata:
@@ -312,14 +335,19 @@ paths:
       tags:
       - model
   /models/{model_name}/urls:
-    get:
-      operationId: list_urls_models__model_name__urls_get
+    post:
+      operationId: list_urls_models__model_name__urls_post
       parameters:
       - in: path
         name: model_name
         required: true
         schema:
           $ref: '#/components/schemas/ModelName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pagination'
       responses:
         '200':
           content:
@@ -347,7 +375,7 @@ paths:
                   example: https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
                   title: URL of the image
                   type: string
-                title: Response List Urls Models  Model Name  Urls Get
+                title: Response List Urls Models  Model Name  Urls Post
                 type: array
           description: Successful Response
         '422':

@@ -50,11 +50,11 @@ def compare(model_name, url_left, url_right):
     )
 
 
-def list_urls(model_name):
+def list_urls(model_name, cursor=""):
     return [
         search_result["url"]
         for search_result in collections[model_name].query(
-            'url > ""',
+            f'url > "{cursor}"',
             consistency_level="Strong",  # https://milvus.io/docs/consistency.md
         )
     ]
