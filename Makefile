@@ -25,6 +25,9 @@ build:
 test:
 	${RUN} python -m pytest --testmon --tb=short
 
+destroy-milvus:
+	${RUN} python -c 'import milvus; milvus.destroy_all_data_from_all_collections_in_the_whole_database()'
+
 up:
 	${COMPOSE} up --build --remove-orphans -d
 

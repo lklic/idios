@@ -6,6 +6,11 @@ from milvus import collections, metrics
 
 
 def insert_image(model_name, url, metadata):
+    if collections[model_name].query(
+        f'url in ["{url}"]',
+        consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+    ):
+        raise ValueError("Url already in collection.")
     embedding = features[model_name].extract(load_image_from_url(url))
     collections[model_name].insert([[url], [embedding], [json.dumps(metadata)]])
 
