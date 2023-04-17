@@ -180,13 +180,13 @@ async def list_urls(model_name: ModelName, pagination: Pagination | None = None)
     )
 
 
-# @app.get(
-#    "/models/{model_name}/count",
-#    tags=["model"],
-#    summary="Number of images",
-# )
-# async def count(model_name: ModelName):
-#    return collections[model_name.value].num_entities
+@app.get(
+    "/models/{model_name}/count",
+    tags=["model"],
+    summary="Number of images",
+)
+async def count(model_name: ModelName):
+    return try_rpc("count", [model_name.value])
 
 
 @app.post(

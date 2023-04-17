@@ -60,6 +60,15 @@ def list_urls(model_name, cursor=""):
     ]
 
 
+def count(model_name):
+    urls = list_urls(model_name)
+    result = len(urls)
+    while urls:
+        urls = list_urls(model_name, urls[-1])
+        result += len(urls)
+    return result
+
+
 def remove_image(model_name, url):
     # Milvus only supports deleting entities with clearly specified primary
     # keys, which can be achieved merely with the term expression in. Other
@@ -74,5 +83,6 @@ commands = dict(
     search=search,
     compare=compare,
     list_urls=list_urls,
+    count=count,
     remove_image=remove_image,
 )

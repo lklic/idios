@@ -287,3 +287,18 @@ def test_list_urls_returns_500_when_rpc_error(mock_rpc):
     response = client.post("/models/vit_b32/urls")
     assert response.status_code == 500
     mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None])
+
+
+def test_count_success(mock_rpc):
+    mock_rpc.return_value = 42
+    response = client.get("/models/vit_b32/count")
+    assert response.status_code == 200
+    assert response.json() == 42
+    mock_rpc.assert_called_once_with("count", ["vit_b32"])
+
+
+def test_list_urls_returns_500_when_rpc_error(mock_rpc):
+    mock_rpc.side_effect = RuntimeError("Internal server error")
+    response = client.get("/models/vit_b32/count")
+    assert response.status_code == 500
+    mock_rpc.assert_called_once_with("count", ["vit_b32"])

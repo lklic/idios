@@ -276,6 +276,30 @@ paths:
       summary: Compute the similarity score between two images
       tags:
       - model
+  /models/{model_name}/count:
+    get:
+      operationId: count_models__model_name__count_get
+      parameters:
+      - in: path
+        name: model_name
+        required: true
+        schema:
+          $ref: '#/components/schemas/ModelName'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Number of images
+      tags:
+      - model
   /models/{model_name}/remove:
     post:
       operationId: remove_image_models__model_name__remove_post

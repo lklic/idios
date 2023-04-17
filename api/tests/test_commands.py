@@ -15,7 +15,7 @@ def test_crud():
 
     assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32")
 
-    # assert 1 == commands["count"]("vit_b32")
+    assert 1 == commands["count"]("vit_b32")
 
     assert [
         {
@@ -29,7 +29,7 @@ def test_crud():
 
     assert [] == commands["list_urls"]("vit_b32")
 
-    # assert 0 == commands["count"]("vit_b32")
+    assert 0 == commands["count"]("vit_b32")
 
 
 def test_compare():
