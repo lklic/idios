@@ -67,3 +67,33 @@ def test_query_results_are_sorted_by_pk():
     ]
 
     utility.drop_collection(collection_name)
+
+
+N_ENTITIES = 1000
+DIM = 512
+embeddings = [[0] * DIM for _ in range(N_ENTITIES)]
+urls = [str(uuid.uuid4()) for _ in range(N_ENTITIES)]
+metadatas = ["null"] * N_ENTITIES
+
+
+@pytest.mark.benchmark
+def test_batch_insert(benchmark):
+    collection_name = "test_collection_to_remove"
+    ensure_connection()  # for utilities
+    utility.drop_collection(collection_name)
+    collection = get_collection(collection_name, DIM)
+    benchmark(collection.insert, [urls, embeddings, metadatas])
+
+
+@pytest.mark.benchmark
+def test_individual_insert(benchmark):
+    collection_name = "test_collection_to_remove"
+    ensure_connection()  # for utilities
+    utility.drop_collection(collection_name)
+    collection = get_collection(collection_name, DIM)
+
+    def insert_each():
+        for params in zip(urls, embeddings, metadatas):
+            collection.insert([[param] for param in params])
+
+    benchmark(insert_each)
