@@ -12,7 +12,7 @@ watched: black test doc/openapi.yaml
 shell:
 	${RUN} bash
 
-doc/openapi.yaml: api/main.py
+doc/openapi.yaml: api/openapi.py api/main.py
 	${RUN} ./openapi.py
 	mv api/openapi.yaml doc
 

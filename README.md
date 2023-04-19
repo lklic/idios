@@ -1,260 +1,124 @@
 # Idios
 
-## Idios is a multi-model reverse image search application with an HTTP API that allows you to search for images that are visually similar.
-
+Idios is a multi-model reverse image search application with an HTTP API that
+allows you to store and search for images that are visually similar.
 
 ### Features
- - Fully Dockerized for quick deployment
+
+ - Fully Dockerized for quick deployment and development set up
  - Simple GUI to upload images and test functionality
  - HTTP API for sending requests programmatically
+ - Easy scaling by spawning multiple workers
+ - Further indexing scaling with Milvus cloud native architecture
 
 ### Components
 
- - Dockerized instance of Milvus
- - Python app with API, supporting multiple models (CLIP, ResNet, etc.)
- - 
-Embeddings are stored in the vector database Milvus, with different Milvus "collections" of embeddings that are mapped to a specific model in Idios. The architecture is extensible in a way to allows new models to be added in the future. For Version 1.0 OpenAI's CLIP model will be used as the primary model. Images have their embedding extracted based on a specific model, and then are added to a collection for storage and search. Each model has a corresponding Milvus collection to which it is mapped. The model has a corresponding collection name in Milvus, and is specified in the API call.
+ - Standalone Milvus vector database and dependencies (minio and etcd)
+ - Python worker(s) to compute image image embeddings and interact with Milvus
+ - FastAPI based, stateless HTTP API. FastAPI leverages python typing to process requests parameters, responses, and documentation.
+ - RabbitMQ to manage the job queue between the API and the worker(s)
 
+Users submit image urls to the API via HTTP. The API posts a job in the
+RabbitMQ managed message queue and waits for its result. A worker picks the
+job, computes the embedding, stores it in the vector database Milvus and
+returns a successful response to the API.
 
-### References
+Another possible job is to measure the similarity between two images. Images
+added to Milvus can also be ranked by similarity with a query image. They can
+also be removed from the index, counted, and listed by url.
 
-- Milvus Image Similarity Search example: https://milvus.io/docs/image_similarity_search.md  
-  - Note: as of version 2.2 there is no need to use a MySQL database to store URLs because the Milvus field schema now supoorts the VARCHAR data type as primary key. Please see the Python API reference: https://milvus.io/api-reference/pymilvus/v2.2.0/Schema/FieldSchema.md.  
-- Milvus Image Deduplication: https://milvus.io/docs/image_deduplication_system.md This can be used for near-exact image matching
-- Milvus Python SDK: https://milvus.io/api-reference/pymilvus/v2.2.0/About.md
-- CLIP image search: https://github.com/kingyiusuen/clip-image-search
+Embeddings are stored in different Milvus "collections" of embeddings that are
+mapped 1:1 to a specific model in Idios. The model has a corresponding
+collection name in Milvus, and is specified in the API call. The architecture
+is extensible in a way to allows new models to be added in the future. For
+Version 1.0 OpenAI's CLIP ViT-b32 model will be used as the primary model.
+Further models include CLIP ViT-l14 or ResNet. Images have their embedding
+extracted based on a specific model, and then are added to a collection for
+storage and search.
 
+Each image has an associated ID (`VARCHAR`) which is the URL of the image, and
+serves as the primary key in the Milvus collection. Optionally, additional
+metadata can be associated with the image as an arbitrary JSON object.
 
-## Docker configuration
+### HTTP API Reference
 
-- For extracting the embedding from large amounts of images, docker swarm can scale the number of containers that extract the embeddings.
+Idios can be controlled using a simple HTTP API that listens on port 4213.
+Requests parameters and responses are formatted in JSON.
 
-## Assumptions
+The API has an interactive documentation at the /doc path of a live setup. This
+[interactive documentation](https://qbonnard.github.io/idios/) is also hosted
+on the repository.
 
-- Images should have persitant URLs that will not change over time.
-- Images are accessible from the server where Idios is hosted and do not require authentication.
-- Only JPEG images are supported
-- Images must have their dimensions above 150 x 150 pixels, otherwise the API will return an error `IMAGE_SIZE_TOO_SMALL`
-- If one of the image dimension exceeds 1000 pixels, Idios will resize the image so that the maximum dimension is set to 1000 pixels and the original aspect ratio is kept.
-- Some image links may be permalinks from library or museum image collections or be hosted on IIIF servers that only accept certain request headers, additionally, the URL may return a 303 redirect to point you to the actual image. The API should be able to handle the redirect silently and still use the original URL as the primary key.
+Each endpoint has a "Try it out" button which reaveals an interface to build a
+curl request.
 
-The following (initial) images can be used for testing:
+## Development
 
-- https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
-- https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg
-- https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg
+### Quickstart
 
+Install the docker engine (or docker desktop) and the compose plugin:
+https://docs.docker.com/compose/install/
 
-# HTTP API
-
-Idios can be controlled using a simple HTTP API that listens on port 4213, responses are formatted in JSON.
-
-Each image has an associated ID (`VARCHAR`) which is the URL of the image, and serves as the primary key in the Milvus collection. For consistancy, image URLs should not have escape characters. Optionally, additional metadata can be associated with the image as an arbitrary JSON object.
-
-# API Reference
-
-Idios has a simple HTTP API. All request parameters are specified via `application/x-www-form-urlencoded`.
-
-The name of the model is mapped to a specific Milvus collection should be specified as part of the URL:
-  
-  e.g. `http:/idios.domain.com:4213/{model}/search`
-
-
-Supported CLIP Models (v.1.0):
-
-* ViT-L14
-* ViT-B32
-
-
-## API Methods
-
-* [POST `/add`](#post-add)
-* [DELETE `/delete`](#delete-delete)
-* [POST `/search`](#post-search)
-* [POST `/compare`](#post-compare)
-* [GET `/count`](#get-count)
-* [GET `/list`](#get-list)
-* [GET `/ping`](#get-ping)
-
----
-
-### POST `/add`
-
-Adds an image embedding to the index.
-
-#### Parameters
-
-* **url** *(required)*
-
-  The image to add to the database. It may be provided as a URL via `url` .
-
-* **metadata** *(default: None)*
-
-  An arbitrary JSON object featuring meta data to attach to the image.
-
-
-* **Possible error types** "IMAGE_NOT_DECODED", "IMAGE_SIZE_TOO_SMALL", "IMAGE_DOWNLOADER_HTTP_ERROR" with the HTTP status code in the "image_downloader_http_response_code" field.
-
-
-#### Example API call via CURL
-
-```
-curl -X POST -d 'url=https://iiif.example.net/iiif/2/image1.jpg/full/full/0/default.jpg' http:/idios.domain.com:4213/ViT-L14/search
+Run the development environment:
+```sh
+docker compose -p idios -f docker/docker-compose.yml up --build --remove-orphans -d
 ```
 
+This command can be invoked by calling `make up` at the repository root,
+assuming make is available on you system. [`Makefile`](./Makefile) contains many
+useful commands for development, mostly using make as a command launcher rather
+than a build system. The commands are documented in the Makefile itself.
 
-#### Example Response
+### Architecture
 
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "add",
-  "result": []
-}
-```
+The [development compose file](./docker/docker-compose.yml) contains the core
+components of idios: a standalone milvus deployment with the required etcd and
+minio services, the api service, the worker service, and the rabbitmq service.
+It also includes attu, a web UI for milvus.
 
----
+The api and worker service share a common image, including the
+[dependencies](./api/requirements.txt) of
+[both](./api/requirements-worker.txt), as well as extra [development
+requirements](./api/requirements-dev.txt) (mostly testing instrumentation).
 
-### DELETE `/delete`
+### Repository structure
 
-Deletes an image from the index.
+[`docker`](./docker) and [`doc`](./doc) are folders that respectively contain
+docker (compose) related configuration files and a static export of the
+interactive API reference.
 
-#### Parameters
+The `[api](./api)` folder contains two groups of source files:
 
-* **url** *(required)*
+- the api code :
+  - [main.py](./api/main.py) specifies the HTTP API with FastAPI
+  - [rpc_client.py](./api/rpc_client.py) handles remote procedure call generation
+    and response parsing
+  - [openapi.py](./api/openapi.py) is a script to export the static API reference
 
-  The URL of the image signature in the index.
+- the worker code :
+  - [features.py](./api/features.py) leverages models to generate embeddings
+    from images at given urls
+  - [milvus.py](./api/milvus.py) wraps calls to the milvus API
+  - [commands.py](./api/commands.py) integrates the  together
+  - [worker.py](./api/worker.py) wraps the commands
 
-#### Example Response
+- [common.py](./api/common.api) includes constants shared between the two groups
 
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "delete",
-  "result": []
-}
-```
+## Deployment
 
----
+### Set up
 
-### POST `/search`
+### Scaling
 
-Searches for a similar image in the database. Scores range from 0 to 100, with 100 being a perfect match.
+### Further scaling of milvus
 
-#### Parameters
+https://milvus.io/tools/sizing
 
-* **url** *(required)*
+## References
 
-  The image URL to search for in the index. It may be provided as a URL via `url`.
-
-
-#### Example Response
-
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "search",
-  "result": [
-    {
-      "score": 99.0,
-      "ulr": "http://example.com/image.jpg"
-    }
-  ]
-}
-```
-
----
-
-### POST `/compare`
-
-Compares two images, returning a score for their similarity. Scores range from 0 to 100, with 100 being a perfect match.
-
-#### Parameters
-
-* **url1** , **url2** *(required)*
-
-  The images to compare. They may be provided as a URL via `url1`/`url2` .
-
-#### Example Response
-
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "compare",
-  "result": [
-    {
-      "score": 99.0
-    }
-  ]
-}
-```
-
----
-
-### GET `/count`
-
-Count the number of images in in a given index.
-
-#### Example Response
-
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "list",
-  "result": [420]
-}
-```
-
----
-
-### GET `/list`
-
-Lists the URLs for the image signatures in the database.
-
-#### Parameters
-
-* **offset** *(default: 0)*
-
-  The location in the database to begin listing image paths.
-
-* **limit** *(default: 20)*
-
-  The number of image paths to retrieve.
-
-#### Example Response
-
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "list",
-  "result": [
-    "http://img.youtube.com/vi/iqPqylKy-bY/0.jpg",
-    "https://i.ytimg.com/vi/zbjIwBggt2k/hqdefault.jpg",
-    "https://s-media-cache-ak0.pinimg.com/736x/3d/67/6d/3d676d3f7f3031c9fd91c10b17d56afe.jpg"
-  ]
-}
-```
-
----
-
-### GET `/ping`
-
-Check for the health of the server.
-
-#### Example Response
-
-```json
-{
-  "status": "ok",
-  "error": [],
-  "method": "ping",
-  "result": []
-}
-```
-
+docker
+docker compose
+FastAPI
+pymilvus
+rabbitmq/RPC sample
+vit sample

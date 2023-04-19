@@ -12,5 +12,16 @@ specs = get_openapi(
     routes=app.routes if app.routes else None,
 )
 
+
+# Use > style only for long strings
+def string_representer(dumper, data):
+    if len(data) > 60 and len(data.split(" ")[0]) < 60:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=">")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+yaml.add_representer(str, string_representer)
+
+
 with open(f"openapi.yaml", "w") as f:
-    yaml.dump(specs, f)
+    yaml.dump(specs, f, width=80)

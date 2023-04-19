@@ -40,6 +40,8 @@ def search(model_name, url):
 
 
 def compare(model_name, url_left, url_right):
+    # alternatively, we could first try to fetch the embeddings from milvus in
+    # case their computation is significantly more expensive than a query
     left = features[model_name].extract(load_image_from_url(url_left))
     right = features[model_name].extract(load_image_from_url(url_right))
 
