@@ -1,6 +1,7 @@
 import json
 import numpy as np
 
+from common import MAX_MILVUS_PAGINATION
 from features import load_image_from_url, features
 from milvus import collections, metrics
 
@@ -57,12 +58,13 @@ def compare(model_name, url_left, url_right):
     )
 
 
-def list_urls(model_name, cursor=""):
+def list_urls(model_name, cursor="", limit=MAX_MILVUS_PAGINATION):
     return [
         search_result["url"]
         for search_result in collections[model_name].query(
             f'url > "{cursor}"',
             consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+            limit=limit,
         )
     ]
 

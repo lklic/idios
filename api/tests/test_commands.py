@@ -78,3 +78,33 @@ def test_list_with_cursor():
 
     commands["remove_image"]("vit_b32", TEST_URLS[1])
     commands["remove_image"]("vit_b32", TEST_URLS[0])
+
+
+def test_list_with_limit():
+    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
+    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
+
+    assert [TEST_URLS[1]] == commands["list_urls"]("vit_b32", None, 1)
+
+    commands["remove_image"]("vit_b32", TEST_URLS[1])
+    commands["remove_image"]("vit_b32", TEST_URLS[0])
+
+
+def test_list_with_cursor_and_limit():
+    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
+    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
+    commands["insert_image"]("vit_b32", TEST_URLS[2], None)
+    assert [
+        TEST_URLS[2],
+        TEST_URLS[1],
+        TEST_URLS[0],
+    ] == commands[
+        "list_urls"
+    ]("vit_b32")
+
+    assert [TEST_URLS[1]] == commands["list_urls"]("vit_b32", TEST_URLS[2], 1)
+
+    commands["remove_image"]("vit_b32", TEST_URLS[2])
+    commands["remove_image"]("vit_b32", TEST_URLS[1])
+    commands["remove_image"]("vit_b32", TEST_URLS[0])

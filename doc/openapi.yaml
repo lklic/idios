@@ -118,8 +118,11 @@ components:
             after the url specified by the cursor.
           title: Enumeration cursor
           type: string
-      required:
-      - cursor
+        limit:
+          maximum: 16384.0
+          minimum: 1.0
+          title: Limit
+          type: integer
       title: Pagination
       type: object
     SearchResult:
@@ -391,7 +394,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Pagination'
+              allOf:
+              - $ref: '#/components/schemas/Pagination'
+              default: {}
+              title: Pagination
       responses:
         '200':
           content:

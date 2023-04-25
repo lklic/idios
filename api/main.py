@@ -1,11 +1,11 @@
 from fastapi import FastAPI, status, HTTPException
-from pydantic import BaseModel, HttpUrl, confloat
+from pydantic import BaseModel, HttpUrl, confloat, conint
 from enum import Enum
 from typing import Literal
 
 import json
 
-from common import feature_dimensions, MAX_METADATA_LENGTH
+from common import feature_dimensions, MAX_METADATA_LENGTH, MAX_MILVUS_PAGINATION
 from rpc_client import RpcClient
 
 
@@ -104,7 +104,8 @@ class SimilarityScore(BaseModel):
 
 
 class Pagination(BaseModel):
-    cursor: Cursor
+    cursor: Cursor | None
+    limit: conint(ge=1, le=MAX_MILVUS_PAGINATION) | None
 
 
 class SearchResult(BaseModel):
@@ -187,10 +188,10 @@ List the urls of all images. Use the pagination cursor to make sure that the enu
 """.strip(),
     response_model=list[ImageUrl],
 )
-async def list_urls(model_name: ModelName, pagination: Pagination = None):
-    return try_rpc(
-        "list_urls", [model_name.value, pagination.cursor if pagination else None]
-    )
+async def list_urls(
+    model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
+):
+    return try_rpc("list_urls", [model_name.value, pagination.cursor, pagination.limit])
 
 
 @app.get(

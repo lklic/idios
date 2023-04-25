@@ -266,7 +266,7 @@ def test_list_urls_returns_urls(mock_rpc):
     assert len(response.json()) == 2
     assert response.json()[0] == "http://example.com/image1.jpg"
     assert response.json()[1] == "http://example.com/image2.jpg"
-    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None])
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None, None])
 
 
 def test_list_urls_with_cursor_returns_urls(mock_rpc):
@@ -279,14 +279,42 @@ def test_list_urls_with_cursor_returns_urls(mock_rpc):
     assert len(response.json()) == 2
     assert response.json()[0] == "http://example.com/image1.jpg"
     assert response.json()[1] == "http://example.com/image2.jpg"
-    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", "some url"])
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", "some url", None])
+
+
+def test_list_urls_with_limit_returns_urls(mock_rpc):
+    mock_rpc.return_value = [
+        "http://example.com/image1.jpg",
+        "http://example.com/image2.jpg",
+    ]
+    response = client.post("/models/vit_b32/urls", json={"limit": 10})
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+    assert response.json()[0] == "http://example.com/image1.jpg"
+    assert response.json()[1] == "http://example.com/image2.jpg"
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None, 10])
+
+
+def test_list_urls_with_cursor_and_limit_returns_urls(mock_rpc):
+    mock_rpc.return_value = [
+        "http://example.com/image1.jpg",
+        "http://example.com/image2.jpg",
+    ]
+    response = client.post(
+        "/models/vit_b32/urls", json={"cursor": "some url", "limit": 10}
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+    assert response.json()[0] == "http://example.com/image1.jpg"
+    assert response.json()[1] == "http://example.com/image2.jpg"
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", "some url", 10])
 
 
 def test_list_urls_returns_500_when_rpc_error(mock_rpc):
     mock_rpc.side_effect = RuntimeError("Internal server error")
     response = client.post("/models/vit_b32/urls")
     assert response.status_code == 500
-    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None])
+    mock_rpc.assert_called_once_with("list_urls", ["vit_b32", None, None])
 
 
 def test_count_success(mock_rpc):
