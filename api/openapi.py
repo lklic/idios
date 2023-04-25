@@ -3,6 +3,8 @@
 from fastapi.openapi.utils import get_openapi
 from main import app
 import yaml
+import argparse
+
 
 specs = get_openapi(
     title=app.title if app.title else None,
@@ -22,6 +24,8 @@ def string_representer(dumper, data):
 
 yaml.add_representer(str, string_representer)
 
-
-with open(f"openapi.yaml", "w") as f:
+parser = argparse.ArgumentParser()
+parser.add_argument("-o", "--output", default="openapi.yaml")
+args = parser.parse_args()
+with open(args.output, "w") as f:
     yaml.dump(specs, f, width=80)

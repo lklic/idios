@@ -47,7 +47,7 @@ Requests parameters and responses are formatted in JSON.
 
 The API has an interactive documentation at the /doc path of a live setup. This
 [interactive documentation](https://qbonnard.github.io/idios/) is also hosted
-on the repository.
+on the repository. It is regenerated on each push to master by GitHub's CI.
 
 Each endpoint has a "Try it out" button which reaveals an interface to build a
 curl request.

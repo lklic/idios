@@ -13,8 +13,7 @@ shell:
 	${RUN} bash
 
 doc/openapi.yaml: api/openapi.py api/main.py
-	${RUN} ./openapi.py
-	mv api/openapi.yaml doc
+	${RUN} ./openapi.py -o doc/openapi.py
 
 black:
 	docker run --rm --volume $$(pwd)/api:/src --workdir /src pyfound/black:latest_release black .
