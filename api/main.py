@@ -111,7 +111,7 @@ class Pagination(BaseModel):
 class SearchResult(BaseModel):
     url: ImageUrl
     metadata: ImageMetadata | None
-    similarity_score: SimilarityScore
+    similarity: SimilarityScore
 
 
 class SearchResults(BaseModel):
@@ -157,7 +157,7 @@ async def insert_image(model_name: ModelName, image: ImageAndMetada):
                 }
             ],
         )
-    try_rpc("insert_image", [model_name.value, image.url, metadata_string])
+    try_rpc("insert_image", [model_name.value, image.url, json.loads(metadata_string)])
 
 
 @app.post(

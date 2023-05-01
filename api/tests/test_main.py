@@ -32,7 +32,20 @@ def test_add_image_success(mock_rpc):
     assert response.status_code == 204
     mock_rpc.assert_called_once_with(
         "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
+        ["vit_b32", "http://example.com/image.jpg", {"tags": ["cat", "cute"]}],
+    )
+
+
+def test_add_image_success_no_metadata(mock_rpc):
+    mock_rpc.return_value = None
+    response = client.post(
+        "/models/vit_b32/add",
+        json={"url": "http://example.com/image.jpg"},
+    )
+    assert response.status_code == 204
+    mock_rpc.assert_called_once_with(
+        "insert_image",
+        ["vit_b32", "http://example.com/image.jpg", None],
     )
 
 
@@ -99,10 +112,7 @@ def test_add_image_small_dimensions(mock_rpc):
     mock_rpc.side_effect = ValueError("Image size too small")
     response = client.post(
         "/models/vit_b32/add",
-        json={
-            "url": "http://example.com/image.jpg",
-            "metadata": {"tags": ["cat", "cute"]},
-        },
+        json={"url": "http://example.com/image.jpg"},
     )
     assert response.status_code == 422
     assert response.json() == {
@@ -110,7 +120,7 @@ def test_add_image_small_dimensions(mock_rpc):
     }
     mock_rpc.assert_called_once_with(
         "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
+        ["vit_b32", "http://example.com/image.jpg", None],
     )
 
 
@@ -118,10 +128,7 @@ def test_add_image_server_error(mock_rpc):
     mock_rpc.side_effect = RuntimeError("Server error")
     response = client.post(
         "/models/vit_b32/add",
-        json={
-            "url": "http://example.com/image.jpg",
-            "metadata": {"tags": ["cat", "cute"]},
-        },
+        json={"url": "http://example.com/image.jpg"},
     )
     assert response.status_code == 500
     assert response.json() == {
@@ -129,7 +136,7 @@ def test_add_image_server_error(mock_rpc):
     }
     mock_rpc.assert_called_once_with(
         "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", '{"tags": ["cat", "cute"]}'],
+        ["vit_b32", "http://example.com/image.jpg", None],
     )
 
 
@@ -138,12 +145,12 @@ def test_search_success(mock_rpc):
         {
             "url": "http://example.com/image1.jpg",
             "metadata": {"tags": ["cat", "cute"]},
-            "similarity_score": 0.1,
+            "similarity": 10,
         },
         {
             "url": "http://example.com/image2.jpg",
-            "metadata": {"tags": ["dog", "cute"]},
-            "similarity_score": 0.2,
+            "metadata": None,
+            "similarity": 20,
         },
     ]
     response = client.post(
@@ -155,14 +162,27 @@ def test_search_success(mock_rpc):
         {
             "url": "http://example.com/image1.jpg",
             "metadata": {"tags": ["cat", "cute"]},
-            "similarity_score": 0.1,
+            "similarity": 10,
         },
         {
             "url": "http://example.com/image2.jpg",
-            "metadata": {"tags": ["dog", "cute"]},
-            "similarity_score": 0.2,
+            "metadata": None,
+            "similarity": 20,
         },
     ]
+    mock_rpc.assert_called_once_with(
+        "search", ["vit_b32", "http://example.com/query.jpg"]
+    )
+
+
+def test_search_empty(mock_rpc):
+    mock_rpc.return_value = []
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"url": "http://example.com/query.jpg"},
+    )
+    assert response.status_code == 200
+    assert response.json() == []
     mock_rpc.assert_called_once_with(
         "search", ["vit_b32", "http://example.com/query.jpg"]
     )

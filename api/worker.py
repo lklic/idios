@@ -19,8 +19,8 @@ channel.queue_declare(queue="features_rpc_queue")
 
 def on_request(ch, method, props, body):
     try:
+        print(body)
         command, args = json.loads(body)
-        print(f"{command}({', '.join(args)})")
         response = json.dumps(commands[command](*args))
     except Exception as e:
         print(e)

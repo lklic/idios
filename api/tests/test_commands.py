@@ -11,6 +11,9 @@ TEST_URLS = [
 
 def test_crud():
     metadata = {"tags": ["text"], "language": "japanese"}
+
+    assert [] == commands["list_urls"]("vit_b32")
+
     commands["insert_image"]("vit_b32", TEST_URLS[0], metadata)
 
     with pytest.raises(ValueError) as exc_info:
