@@ -1,16 +1,64 @@
-FROM python:3.10
+FROM python:3.10 AS base
 
 ARG UID=1000
 RUN groupadd -r -g $UID user && \
     useradd --create-home --shell /bin/bash --no-log-init -r -g user -u $UID user
 
+USER user
+WORKDIR /app
+ENV PATH="/home/user/.local/bin:${PATH}"
+
+
+FROM base AS dev
+
+USER root
 RUN --mount=type=cache,target=/home/user/.cache/pip chown --recursive user:user /home/user/.cache
 
 USER user
-
 RUN mkdir -p /home/user/.cache/huggingface
-
-ENV PATH="/home/user/.local/bin:${PATH}"
 COPY requirements*.txt /tmp
-
 RUN --mount=type=cache,target=/home/user/.cache/pip pip install -r /tmp/requirements-dev.txt
+
+
+
+FROM base AS api
+
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+
+# If running behind a proxy like Nginx or Traefik add --proxy-headers
+CMD ["uvicorn", "main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "4213"]
+HEALTHCHECK --start-period=1s --interval=10s --timeout=1s --retries=5 \
+  CMD curl -f http://localhost:4213/ping || exit 1
+
+COPY . /app
+
+
+
+FROM base AS worker
+
+COPY ./requirements-worker.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+# Download models
+COPY ./features.py /app/
+RUN python features.py
+
+ENV PYTHONUNBUFFERED=1
+STOPSIGNAL SIGINT
+CMD ["python", "worker.py"]
+HEALTHCHECK --start-period=5s --interval=5s --timeout=5s --retries=5 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+COPY . /app
+
+
+
+FROM milvusdb/milvus:v2.2.2 AS milvus
+
+CMD ["milvus", "run", "standalone"]
+HEALTHCHECK --start-period=1s --interval=10s --timeout=1s --retries=5 \
+  CMD curl -f http://localhost:9091/api/v1/health || exit 1
+
+COPY ./milvus.yaml /milvus/configs/milvus.yaml

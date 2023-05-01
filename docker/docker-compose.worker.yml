@@ -1,0 +1,17 @@
+version: '3.5'
+
+services:
+  worker:
+    build:
+      context: ../api
+      dockerfile: ../docker/Dockerfile
+      target: worker
+    restart: unless-stopped
+    environment:
+      MILVUS_URL: milvus.idios.org:19530 #TOEDIT
+      MILVUS_PASSWORD: FicopwadCer8 #TOEDIT
+      RABBITMQ_URL: amqp://idios:dutEmoigAwd4@queue.idios.org:5672 #TOEDIT
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"

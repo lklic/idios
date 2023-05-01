@@ -1,0 +1,96 @@
+version: '3.5'
+
+services:
+  api:
+    build:
+      context: ../api
+      dockerfile: ../docker/Dockerfile
+      target: api
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://idios:dutEmoigAwd4@queue.idios.org:5672 #TOEDIT
+
+    networks:
+      reverse_proxy:
+    labels:
+      traefik.enable: 'true'
+      traefik.http.routers.idios-api.entrypoints: websecure
+      traefik.http.routers.idios-api.rule: Host(`api.idios.org`) #TOEDIT
+      traefik.http.services.idios-api.loadbalancer.server.port: 4213
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    ports:
+      - 5672:5672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=idios #TOEDIT
+      - RABBITMQ_DEFAULT_PASS=dutEmoigAwd4 #TOEDIT
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      reverse_proxy:
+    labels:
+      traefik.enable: 'true'
+      traefik.http.routers.idios-queue.entrypoints: websecure
+      traefik.http.routers.idios-queue.rule: Host(`queue.idios.org`) #TOEDIT
+      traefik.http.services.idios-queue.loadbalancer.server.port: 15672
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"
+
+  traefik:
+    image: traefik:v2.10
+    networks:
+      reverse_proxy:
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - certificates:/certificates
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+      - --providers.docker
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.network=reverse_proxy
+
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+      - --certificatesresolvers.letsencrypt.acme.storage=/certificates/acme.json
+      - --certificatesresolvers.letsencrypt.acme.email=admin@idios.org #TOEDIT
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+
+      # - --certificatesresolvers.letsencrypt.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory
+
+      - --accesslog
+      - --log
+      - --log.level=info # PANIC, FATAL, ERROR (Default), WARN, INFO, DEBUG
+
+      - --api
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"
+
+volumes:
+  rabbitmq:
+  certificates:
+
+networks:
+  reverse_proxy:
+    name: reverse_proxy
