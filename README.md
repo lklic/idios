@@ -46,7 +46,7 @@ metadata can be associated with the image as an arbitrary JSON object.
 Idios can be controlled using a simple HTTP API that listens on port 4213.
 Requests parameters and responses are formatted in JSON.
 
-The API has an interactive documentation at the /doc path of a live setup. This
+The API has an interactive documentation at the /docs path of a live setup. This
 [interactive documentation](https://qbonnard.github.io/idios/) is also hosted
 on the repository. It is regenerated on each push to master by GitHub's CI.
 
@@ -88,7 +88,7 @@ requirements](./api/requirements-dev.txt) (mostly testing instrumentation).
 docker (compose) related configuration files and a static export of the
 interactive API reference.
 
-The `[api](./api)` folder contains two groups of source files:
+The [`api`](./api) folder contains two groups of source files:
 
 - the api code :
   - [main.py](./api/main.py) specifies the HTTP API with FastAPI
