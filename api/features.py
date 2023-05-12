@@ -14,9 +14,12 @@ def load_image_from_url(url):
     with Image.open(requests.get(url, stream=True).raw) as image:
         if min(image.size) < MIN_SIZE:
             raise ValueError("Images must have their dimensions above 150 x 150 pixels")
+
         if max(image.size) > MAX_SIZE:
-            image.thumbnail((MAX_SIZE, MAX_SIZE))
-        return image
+            image.thumbnail((MAX_SIZE, MAX_SIZE))  # noop if <= MAX_SIZE
+            return image
+
+        return image.copy()  # ensure the image data is not released
 
 
 # https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py

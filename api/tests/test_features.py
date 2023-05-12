@@ -70,3 +70,12 @@ def test_individual_extract(benchmark):
 @pytest.mark.benchmark
 def test_batch_extract(benchmark):
     benchmark(features["vit_b32"].extract, batch_test_images())
+
+
+def test_unresized_image():
+    url0 = "https://artresearch-iiif.s3.eu-west-1.amazonaws.com/marburg/XKH141001.jpg"
+    url1 = "https://artresearch-iiif.s3.eu-west-1.amazonaws.com/marburg/fm3003035.jpg"
+    url2 = "https://artresearch-iiif.s3.eu-west-1.amazonaws.com/marburg/gm1159076.jpg"
+
+    images = [load_image_from_url(url) for url in [url0, url1, url2]]
+    [features["vit_b32"].extract(image) for image in images]
