@@ -4,6 +4,7 @@ import http.server
 import socketserver
 import threading
 import json
+import traceback
 from commands import commands
 
 connection = pika.BlockingConnection(
@@ -23,7 +24,7 @@ def on_request(ch, method, props, body):
         command, args = json.loads(body)
         response = json.dumps(commands[command](*args))
     except Exception as e:
-        print(e)
+        traceback.print_exc()
         response = json.dumps(
             {"exception_type": type(e).__name__, "exception_args": e.args}
         )
