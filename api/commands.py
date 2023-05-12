@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import time
 
 from common import MAX_MILVUS_PAGINATION
 from features import load_image_from_url, features
@@ -7,13 +8,25 @@ from milvus import collections, metrics
 
 
 def insert_image(model_name, url, metadata):
+    times = [time.time()]
+
     if collections[model_name].query(
         f'url in ["{url}"]',
         consistency_level="Strong",  # https://milvus.io/docs/consistency.md
     ):
         raise ValueError("Url already in collection.")
+
+    times.append(time.time())
+
     embedding = features[model_name].extract(load_image_from_url(url))
+
+    times.append(time.time())
+
     collections[model_name].insert([[url], [embedding], [json.dumps(metadata)]])
+
+    times.append(time.time())
+    durations = [times[i + 1] - times[i] for i in range(len(times) - 1)]
+    print(f"query/extract/insert: {durations}")
 
 
 def search(model_name, url):
