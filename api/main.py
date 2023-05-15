@@ -141,7 +141,8 @@ def try_rpc(command, args):
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["model"],
     summary="""
-Adds a new image embedding to the index. Adding an existing url will trigger an error.
+Adds a new image embedding to the index.
+Adding an existing url will replace the metadata with the provided one.
     """.strip(),
 )
 async def insert_image(model_name: ModelName, image: ImageAndMetada):

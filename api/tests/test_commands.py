@@ -16,10 +16,6 @@ def test_crud():
 
     commands["insert_image"]("vit_b32", TEST_URLS[0], metadata)
 
-    with pytest.raises(ValueError) as exc_info:
-        commands["insert_image"]("vit_b32", TEST_URLS[0], metadata)
-    assert str(exc_info.value) == "Url already in collection."
-
     assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32")
 
     assert 1 == commands["count"]("vit_b32")

@@ -138,7 +138,7 @@ components:
             - text
           title: Optional, arbitrary JSON object to attach to the image
           type: object
-        similarity_score:
+        similarity:
           $ref: '#/components/schemas/SimilarityScore'
         url:
           description: "The url serves as the primary key in the Milvus collection.\
@@ -163,7 +163,7 @@ components:
           type: string
       required:
       - url
-      - similarity_score
+      - similarity
       title: SearchResult
       type: object
     SearchResults:
@@ -264,8 +264,9 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: >-
-        Adds a new image embedding to the index. Adding an existing url will trigger
-        an error.
+        Adds a new image embedding to the index.
+
+        Adding an existing url will replace the metadata with the provided one.
       tags:
       - model
   /models/{model_name}/compare:

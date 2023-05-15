@@ -31,7 +31,8 @@ shell:
 
 # Generate the SwaggerUI interactive API reference
 doc/openapi.yaml: api/openapi.py api/main.py
-	${RUN} ./openapi.py -o doc/openapi.py
+	${RUN} ./openapi.py -o ./openapi.yaml
+	mv api/openapi.yaml $@
 
 # Runs the black linter/formatter on python files
 black:
