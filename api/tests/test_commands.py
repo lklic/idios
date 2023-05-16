@@ -107,3 +107,16 @@ def test_list_with_cursor_and_limit():
     commands["remove_image"]("vit_b32", TEST_URLS[2])
     commands["remove_image"]("vit_b32", TEST_URLS[1])
     commands["remove_image"]("vit_b32", TEST_URLS[0])
+
+
+def test_list_with_output_fields():
+    commands["insert_image"]("vit_b32", TEST_URLS[0], {"meta": "data"})
+
+    result = commands["list_urls"]("vit_b32", "", 10, ["url", "embedding", "metadata"])
+
+    assert all(isinstance(value, float) for value in result[0]["embedding"])
+    assert result[0]["url"] == TEST_URLS[0]
+    assert pytest.approx(sum(result[0]["embedding"])) == -0.41624113269335794
+    assert result[0]["metadata"] == '{"meta": "data"}'
+
+    commands["remove_image"]("vit_b32", TEST_URLS[0])

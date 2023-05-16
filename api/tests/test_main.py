@@ -350,3 +350,33 @@ def test_list_urls_returns_500_when_rpc_error(mock_rpc):
     response = client.get("/models/vit_b32/count")
     assert response.status_code == 500
     mock_rpc.assert_called_once_with("count", ["vit_b32"])
+
+
+def test_export_success(mock_rpc):
+    mock_rpc.return_value = [
+        {
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "embedding": [1.0],
+        },
+    ]
+    response = client.post(
+        "/models/vit_b32/export",
+    )
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "embedding": [1.0],
+        },
+    ]
+    mock_rpc.assert_called_once_with(
+        "list_urls",
+        [
+            "vit_b32",
+            None,
+            None,
+            ["url", "embedding", "metadata"],
+        ],
+    )

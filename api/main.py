@@ -118,6 +118,12 @@ class SearchResults(BaseModel):
     __root__: list[SearchResult]
 
 
+class DatabaseEntry(BaseModel):
+    url: ImageUrl
+    embedding: list[float]
+    metadata: ImageMetadata | None
+
+
 rpc = RpcClient()
 
 
@@ -193,6 +199,29 @@ async def list_urls(
     model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
 ):
     return try_rpc("list_urls", [model_name.value, pagination.cursor, pagination.limit])
+
+
+@app.post(
+    "/models/{model_name}/export",
+    tags=["model"],
+    summary="""
+Export the urls, the embedding and the metadata of all images.
+Use the pagination cursor to make sure that the enumeration reached the end.
+""".strip(),
+    response_model=list[DatabaseEntry],
+)
+async def list_urls(
+    model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
+):
+    return try_rpc(
+        "list_urls",
+        [
+            model_name.value,
+            pagination.cursor,
+            pagination.limit,
+            ["url", "embedding", "metadata"],
+        ],
+    )
 
 
 @app.get(

@@ -1,5 +1,49 @@
 components:
   schemas:
+    DatabaseEntry:
+      properties:
+        embedding:
+          items:
+            type: number
+          title: Embedding
+          type: array
+        metadata:
+          description: >-
+            The metadata is parsed as JSON to ensure its validity and regenerated
+            to possibly minimise it (e.g. removing unnecessary white spaces). The
+            regenerated JSON should at most 65535 characters long.
+          example:
+            language: ja
+            tags:
+            - text
+          title: Optional, arbitrary JSON object to attach to the image
+          type: object
+        url:
+          description: "The url serves as the primary key in the Milvus collection.\
+            \ For consistancy, image URLs should not have escape characters. Optionally,\
+            \ additional metadata can be associated with the image as an arbitrary\
+            \ JSON object.\n\nAssumptions\n- Url follows pydantics' [HttpUrl](https://docs.pydantic.dev/usage/types/#urls):\
+            \ scheme http or https, TLD required, host required, max length 2083.\n\
+            - Images should have persitant URLs that will not change over time.\n\
+            - Images are accessible from the server where Idios is hosted and do not\
+            \ require authentication.\n- Only JPEG images are supported\n- Images\
+            \ must have their\_dimensions\_above\_150 x 150 pixels, otherwise the\
+            \ API will return an error `IMAGE_SIZE_TOO_SMALL`\n- If one of the image\
+            \ dimension exceeds 1000 pixels, Idios will resize the image so that the\
+            \ maximum dimension is set to 1000 pixels and the original aspect ratio\
+            \ is kept.\n- Some image links may be permalinks from library or museum\
+            \ image collections or be hosted on IIIF servers that only accept certain\
+            \ request headers, additionally, the URL may return a 303 redirect to\
+            \ point you to the actual image. The API should be able to handle the\
+            \ redirect silently and still use the original URL as the primary key."
+          example: https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
+          title: URL of the image
+          type: string
+      required:
+      - url
+      - embedding
+      title: DatabaseEntry
+      type: object
     HTTPValidationError:
       properties:
         detail:
@@ -322,6 +366,45 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Count the number of images in in a given index
+      tags:
+      - model
+  /models/{model_name}/export:
+    post:
+      operationId: list_urls_models__model_name__export_post
+      parameters:
+      - in: path
+        name: model_name
+        required: true
+        schema:
+          $ref: '#/components/schemas/ModelName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/Pagination'
+              default: {}
+              title: Pagination
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/DatabaseEntry'
+                title: Response List Urls Models  Model Name  Export Post
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: >-
+        Export the urls, the embedding and the metadata of all images.
+
+        Use the pagination cursor to make sure that the enumeration reached the end.
       tags:
       - model
   /models/{model_name}/remove:
