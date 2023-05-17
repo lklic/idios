@@ -380,3 +380,32 @@ def test_export_success(mock_rpc):
             ["url", "embedding", "metadata"],
         ],
     )
+
+
+def test_bulk_import_success(mock_rpc):
+    mock_rpc.return_value = None
+    response = client.post(
+        "/models/vit_b32/import",
+        json=[
+            {
+                "url": "http://example.com/image.jpg",
+                "metadata": {"tags": ["cat", "cute"]},
+                "embedding": [1.0, 2.0, 3.0],
+            },
+            {
+                "url": "http://example.com/image2.jpg",
+                "metadata": {"tags": ["dog", "cuter"]},
+                "embedding": [],
+            },
+        ],
+    )
+    assert response.status_code == 204
+    mock_rpc.assert_called_once_with(
+        "insert_images",
+        [
+            "vit_b32",
+            ["http://example.com/image.jpg", "http://example.com/image2.jpg"],
+            [{"tags": ["cat", "cute"]}, {"tags": ["dog", "cuter"]}],
+            [[1.0, 2.0, 3.0], []],
+        ],
+    )

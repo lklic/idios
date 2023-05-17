@@ -407,6 +407,39 @@ paths:
         Use the pagination cursor to make sure that the enumeration reached the end.
       tags:
       - model
+  /models/{model_name}/import:
+    post:
+      operationId: bulk_import_models__model_name__import_post
+      parameters:
+      - in: path
+        name: model_name
+        required: true
+        schema:
+          $ref: '#/components/schemas/ModelName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '#/components/schemas/DatabaseEntry'
+              title: Images
+              type: array
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: >-
+        Adds multiple image embeddings to the index.
+
+        Existing urls will have their metadata replaced with the provided one.
+      tags:
+      - model
   /models/{model_name}/remove:
     post:
       operationId: remove_image_models__model_name__remove_post

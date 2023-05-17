@@ -152,7 +152,14 @@ Adding an existing url will replace the metadata with the provided one.
     """.strip(),
 )
 async def insert_image(model_name: ModelName, image: ImageAndMetada):
-    metadata_string = json.dumps(image.metadata)
+    try_rpc(
+        "insert_images",
+        [model_name.value, [image.url], [check_json_string_length(image.metadata)]],
+    )
+
+
+def check_json_string_length(metadata):
+    metadata_string = json.dumps(metadata)
     if len(metadata_string) > MAX_METADATA_LENGTH:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -164,7 +171,31 @@ async def insert_image(model_name: ModelName, image: ImageAndMetada):
                 }
             ],
         )
-    try_rpc("insert_image", [model_name.value, image.url, json.loads(metadata_string)])
+    return json.loads(metadata_string)
+
+
+@app.post(
+    "/models/{model_name}/import",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["model"],
+    summary="""
+Adds multiple image embeddings to the index.
+Existing urls will have their metadata replaced with the provided one.
+    """.strip(),
+)
+async def bulk_import(model_name: ModelName, images: list[DatabaseEntry]):
+    # The type declaration generates the openapi documentation as expected
+    # but results in this rather ugly line. There may be a better use of pydantic
+    # images = images.__root__
+    try_rpc(
+        "insert_images",
+        [
+            model_name.value,
+            [image.url for image in images],
+            [check_json_string_length(image.metadata) for image in images],
+            [image.embedding for image in images],
+        ],
+    )
 
 
 @app.post(
