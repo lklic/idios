@@ -5,9 +5,13 @@ from features import load_image_from_url, features
 from milvus import collections, metrics
 
 
-def insert_image(model_name, url, metadata):
-    embedding = features[model_name].extract(load_image_from_url(url))
-    collections[model_name].insert([[url], [embedding], [json.dumps(metadata)]])
+def insert_images(model_name, urls, metadatas, embeddings=None):
+    if embeddings is None:
+        embeddings = [
+            features[model_name].extract(load_image_from_url(url)) for url in urls
+        ]
+    metadatas = [json.dumps(metadata) for metadata in metadatas]
+    collections[model_name].insert([urls, embeddings, metadatas])
 
 
 def search(model_name, url):
@@ -90,7 +94,7 @@ def remove_image(model_name, url):
 
 
 commands = dict(
-    insert_image=insert_image,
+    insert_images=insert_images,
     search=search,
     compare=compare,
     list_urls=list_urls,

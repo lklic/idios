@@ -31,8 +31,8 @@ def test_add_image_success(mock_rpc):
     )
     assert response.status_code == 204
     mock_rpc.assert_called_once_with(
-        "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", {"tags": ["cat", "cute"]}],
+        "insert_images",
+        ["vit_b32", ["http://example.com/image.jpg"], [{"tags": ["cat", "cute"]}]],
     )
 
 
@@ -44,8 +44,8 @@ def test_add_image_success_no_metadata(mock_rpc):
     )
     assert response.status_code == 204
     mock_rpc.assert_called_once_with(
-        "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", None],
+        "insert_images",
+        ["vit_b32", ["http://example.com/image.jpg"], [None]],
     )
 
 
@@ -119,8 +119,8 @@ def test_add_image_small_dimensions(mock_rpc):
         "detail": [{"msg": "Image size too small", "type": "parameter_error"}]
     }
     mock_rpc.assert_called_once_with(
-        "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", None],
+        "insert_images",
+        ["vit_b32", ["http://example.com/image.jpg"], [None]],
     )
 
 
@@ -135,8 +135,8 @@ def test_add_image_server_error(mock_rpc):
         "detail": [{"msg": "Server error", "type": "server_error"}]
     }
     mock_rpc.assert_called_once_with(
-        "insert_image",
-        ["vit_b32", "http://example.com/image.jpg", None],
+        "insert_images",
+        ["vit_b32", ["http://example.com/image.jpg"], [None]],
     )
 
 

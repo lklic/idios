@@ -20,7 +20,10 @@ channel.queue_declare(queue="features_rpc_queue")
 
 def on_request(ch, method, props, body):
     try:
-        print(body)
+        body_str = str(body)
+        if len(body_str) > 60:
+            body_str = body_str[:50] + "..." + body_str[-10:]
+        print(body_str)
         command, args = json.loads(body)
         response = json.dumps(commands[command](*args))
     except Exception as e:

@@ -14,7 +14,7 @@ def test_crud():
 
     assert [] == commands["list_urls"]("vit_b32")
 
-    commands["insert_image"]("vit_b32", TEST_URLS[0], metadata)
+    commands["insert_images"]("vit_b32", [TEST_URLS[0]], [metadata])
 
     assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32")
 
@@ -43,7 +43,7 @@ def test_compare():
 
 def test_image_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["insert_image"]("vit_b32", "https://picsum.photos/128", None)
+        commands["insert_images"]("vit_b32", ["https://picsum.photos/128"], [None])
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
@@ -69,8 +69,7 @@ def test_image_right_too_small():
 
 
 def test_list_with_cursor():
-    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
-    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
+    commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
     assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
 
     assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32", TEST_URLS[1])
@@ -80,8 +79,7 @@ def test_list_with_cursor():
 
 
 def test_list_with_limit():
-    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
-    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
+    commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
     assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
 
     assert [TEST_URLS[1]] == commands["list_urls"]("vit_b32", None, 1)
@@ -91,9 +89,9 @@ def test_list_with_limit():
 
 
 def test_list_with_cursor_and_limit():
-    commands["insert_image"]("vit_b32", TEST_URLS[0], None)
-    commands["insert_image"]("vit_b32", TEST_URLS[1], None)
-    commands["insert_image"]("vit_b32", TEST_URLS[2], None)
+    commands["insert_images"](
+        "vit_b32", [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]], [None] * 3
+    )
     assert [
         TEST_URLS[2],
         TEST_URLS[1],
@@ -110,13 +108,13 @@ def test_list_with_cursor_and_limit():
 
 
 def test_list_with_output_fields():
-    commands["insert_image"]("vit_b32", TEST_URLS[0], {"meta": "data"})
+    commands["insert_images"]("vit_b32", [TEST_URLS[0]], [{"meta": "data"}])
 
     result = commands["list_urls"]("vit_b32", "", 10, ["url", "embedding", "metadata"])
 
     assert all(isinstance(value, float) for value in result[0]["embedding"])
     assert result[0]["url"] == TEST_URLS[0]
     assert pytest.approx(sum(result[0]["embedding"])) == -0.41624113269335794
-    assert result[0]["metadata"] == '{"meta": "data"}'
+    assert result[0]["metadata"] == {"meta": "data"}
 
     commands["remove_image"]("vit_b32", TEST_URLS[0])
