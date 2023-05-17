@@ -56,7 +56,7 @@ def compare(model_name, url_left, url_right):
     )
 
 
-def list_urls(model_name, cursor="", limit=None, output_fields=None):
+def list_images(model_name, cursor="", limit=None, output_fields=None):
     def prepare(entry):
         if "embedding" in entry:
             entry["embedding"] = [float(x) for x in entry["embedding"]]
@@ -76,10 +76,10 @@ def list_urls(model_name, cursor="", limit=None, output_fields=None):
 
 
 def count(model_name):
-    urls = list_urls(model_name)
+    urls = list_images(model_name)
     result = len(urls)
     while urls:
-        urls = list_urls(model_name, urls[-1])
+        urls = list_images(model_name, urls[-1])
         result += len(urls)
     return result
 
@@ -97,7 +97,7 @@ commands = dict(
     insert_images=insert_images,
     search=search,
     compare=compare,
-    list_urls=list_urls,
+    list_images=list_images,
     count=count,
     remove_image=remove_image,
 )

@@ -370,7 +370,7 @@ paths:
       - model
   /models/{model_name}/export:
     post:
-      operationId: list_urls_models__model_name__export_post
+      operationId: list_images_models__model_name__export_post
       parameters:
       - in: path
         name: model_name
@@ -392,7 +392,7 @@ paths:
               schema:
                 items:
                   $ref: '#/components/schemas/DatabaseEntry'
-                title: Response List Urls Models  Model Name  Export Post
+                title: Response List Images Models  Model Name  Export Post
                 type: array
           description: Successful Response
         '422':
@@ -500,7 +500,7 @@ paths:
       - model
   /models/{model_name}/urls:
     post:
-      operationId: list_urls_models__model_name__urls_post
+      operationId: list_images_models__model_name__urls_post
       parameters:
       - in: path
         name: model_name
@@ -544,7 +544,7 @@ paths:
                   example: https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
                   title: URL of the image
                   type: string
-                title: Response List Urls Models  Model Name  Urls Post
+                title: Response List Images Models  Model Name  Urls Post
                 type: array
           description: Successful Response
         '422':

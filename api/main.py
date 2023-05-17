@@ -226,10 +226,12 @@ List the urls of all images. Use the pagination cursor to make sure that the enu
 """.strip(),
     response_model=list[ImageUrl],
 )
-async def list_urls(
+async def list_images(
     model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
 ):
-    return try_rpc("list_urls", [model_name.value, pagination.cursor, pagination.limit])
+    return try_rpc(
+        "list_images", [model_name.value, pagination.cursor, pagination.limit]
+    )
 
 
 @app.post(
@@ -241,11 +243,11 @@ Use the pagination cursor to make sure that the enumeration reached the end.
 """.strip(),
     response_model=list[DatabaseEntry],
 )
-async def list_urls(
+async def list_images(
     model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
 ):
     return try_rpc(
-        "list_urls",
+        "list_images",
         [
             model_name.value,
             pagination.cursor,

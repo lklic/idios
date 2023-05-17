@@ -12,11 +12,11 @@ TEST_URLS = [
 def test_crud():
     metadata = {"tags": ["text"], "language": "japanese"}
 
-    assert [] == commands["list_urls"]("vit_b32")
+    assert [] == commands["list_images"]("vit_b32")
 
     commands["insert_images"]("vit_b32", [TEST_URLS[0]], [metadata])
 
-    assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32")
+    assert [TEST_URLS[0]] == commands["list_images"]("vit_b32")
 
     assert 1 == commands["count"]("vit_b32")
 
@@ -30,7 +30,7 @@ def test_crud():
 
     commands["remove_image"]("vit_b32", TEST_URLS[0])
 
-    assert [] == commands["list_urls"]("vit_b32")
+    assert [] == commands["list_images"]("vit_b32")
 
     assert 0 == commands["count"]("vit_b32")
 
@@ -70,9 +70,9 @@ def test_image_right_too_small():
 
 def test_list_with_cursor():
     commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
-    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"]("vit_b32")
 
-    assert [TEST_URLS[0]] == commands["list_urls"]("vit_b32", TEST_URLS[1])
+    assert [TEST_URLS[0]] == commands["list_images"]("vit_b32", TEST_URLS[1])
 
     commands["remove_image"]("vit_b32", TEST_URLS[1])
     commands["remove_image"]("vit_b32", TEST_URLS[0])
@@ -80,9 +80,9 @@ def test_list_with_cursor():
 
 def test_list_with_limit():
     commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
-    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_urls"]("vit_b32")
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"]("vit_b32")
 
-    assert [TEST_URLS[1]] == commands["list_urls"]("vit_b32", None, 1)
+    assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", None, 1)
 
     commands["remove_image"]("vit_b32", TEST_URLS[1])
     commands["remove_image"]("vit_b32", TEST_URLS[0])
