@@ -273,7 +273,7 @@ async def count(model_name: ModelName):
     summary="Remove an image embedding from the index.",
 )
 async def remove_image(model_name: ModelName, image: SingleImage):
-    return try_rpc("remove_image", [model_name.value, image.url])
+    return try_rpc("remove_images", [model_name.value, [image.url]])
 
 
 @app.get(

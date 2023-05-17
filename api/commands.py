@@ -84,13 +84,13 @@ def count(model_name):
     return result
 
 
-def remove_image(model_name, url):
+def remove_images(model_name, urls):
     # Milvus only supports deleting entities with clearly specified primary
     # keys, which can be achieved merely with the term expression in. Other
     # operators can be used only in query or scalar filtering in vector search.
     # See Boolean Expression Rules for more information.
     # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
-    collections[model_name].delete(f'url in ["{url}"]')
+    collections[model_name].delete(f'url in ["{",".join(urls)}"]')
 
 
 commands = dict(
@@ -99,5 +99,5 @@ commands = dict(
     compare=compare,
     list_images=list_images,
     count=count,
-    remove_image=remove_image,
+    remove_images=remove_images,
 )

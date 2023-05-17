@@ -28,7 +28,7 @@ def test_crud():
         }
     ] == commands["search"]("vit_b32", TEST_URLS[1])
 
-    commands["remove_image"]("vit_b32", TEST_URLS[0])
+    commands["remove_images"]("vit_b32", [TEST_URLS[0]])
 
     assert [] == commands["list_images"]("vit_b32")
 
@@ -74,8 +74,7 @@ def test_list_with_cursor():
 
     assert [TEST_URLS[0]] == commands["list_images"]("vit_b32", TEST_URLS[1])
 
-    commands["remove_image"]("vit_b32", TEST_URLS[1])
-    commands["remove_image"]("vit_b32", TEST_URLS[0])
+    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]])
 
 
 def test_list_with_limit():
@@ -84,8 +83,7 @@ def test_list_with_limit():
 
     assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", None, 1)
 
-    commands["remove_image"]("vit_b32", TEST_URLS[1])
-    commands["remove_image"]("vit_b32", TEST_URLS[0])
+    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]])
 
 
 def test_list_with_cursor_and_limit():
@@ -97,24 +95,24 @@ def test_list_with_cursor_and_limit():
         TEST_URLS[1],
         TEST_URLS[0],
     ] == commands[
-        "list_urls"
+        "list_images"
     ]("vit_b32")
 
-    assert [TEST_URLS[1]] == commands["list_urls"]("vit_b32", TEST_URLS[2], 1)
+    assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", TEST_URLS[2], 1)
 
-    commands["remove_image"]("vit_b32", TEST_URLS[2])
-    commands["remove_image"]("vit_b32", TEST_URLS[1])
-    commands["remove_image"]("vit_b32", TEST_URLS[0])
+    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]])
 
 
 def test_list_with_output_fields():
     commands["insert_images"]("vit_b32", [TEST_URLS[0]], [{"meta": "data"}])
 
-    result = commands["list_urls"]("vit_b32", "", 10, ["url", "embedding", "metadata"])
+    result = commands["list_images"](
+        "vit_b32", "", 10, ["url", "embedding", "metadata"]
+    )
 
     assert all(isinstance(value, float) for value in result[0]["embedding"])
     assert result[0]["url"] == TEST_URLS[0]
     assert pytest.approx(sum(result[0]["embedding"])) == -0.41624113269335794
     assert result[0]["metadata"] == {"meta": "data"}
 
-    commands["remove_image"]("vit_b32", TEST_URLS[0])
+    commands["remove_images"]("vit_b32", [TEST_URLS[0]])

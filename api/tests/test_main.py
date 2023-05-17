@@ -251,7 +251,7 @@ def test_remove_image_returns_204(mock_rpc):
     )
     assert response.status_code == 204
     mock_rpc.assert_called_once_with(
-        "remove_image", ["vit_b32", "http://example.com/image.jpg"]
+        "remove_images", ["vit_b32", ["http://example.com/image.jpg"]]
     )
 
 
@@ -272,7 +272,7 @@ def test_remove_image_returns_500_when_rpc_error(mock_rpc):
     )
     assert response.status_code == 500
     mock_rpc.assert_called_once_with(
-        "remove_image", ["vit_b32", "http://example.com/image.jpg"]
+        "remove_images", ["vit_b32", ["http://example.com/image.jpg"]]
     )
 
 
