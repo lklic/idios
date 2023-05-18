@@ -124,9 +124,6 @@ class DatabaseEntry(BaseModel):
     metadata: ImageMetadata | None
 
 
-rpc = RpcClient()
-
-
 def try_rpc(command, args):
     try:
         return rpc(command, args)
@@ -284,3 +281,10 @@ async def remove_image(model_name: ModelName, image: SingleImage):
 )
 async def ping():
     return "pong"
+
+
+# Initialize the RpcClient only when we're actually going to do something,
+# i.e. not if we're just importing app to generate the openapi documentation.
+# This way RpcClient can fail fast and hard if it can't reach the rabbitmq server
+if __name__ == "main" or __name__ == "app.main":
+    rpc = RpcClient()
