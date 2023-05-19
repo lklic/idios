@@ -2,10 +2,12 @@ import json
 import pika
 import uuid
 import os
+from common import JOB_QUEUE_NAME
 
 
 class RpcClient(object):
-    def __init__(self):
+    def __init__(self, queue_name=JOB_QUEUE_NAME):
+        self.queue_name = queue_name
         self.connection = pika.BlockingConnection(
             pika.URLParameters(
                 os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672")
@@ -36,7 +38,7 @@ class RpcClient(object):
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
             exchange="",
-            routing_key="features_rpc_queue",
+            routing_key=self.queue_name,
             properties=pika.BasicProperties(
                 reply_to=self.callback_queue,
                 correlation_id=self.corr_id,
@@ -45,7 +47,7 @@ class RpcClient(object):
         )
         self.connection.process_data_events(time_limit=10)  # seconds
         if self.response_data is None:
-            raise RuntimeError("No feature (timeout?)")
+            raise RuntimeError("No response (timeout?)")
         response = json.loads(self.response_data)
         if (
             hasattr(response, "__contains__")
