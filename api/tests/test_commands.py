@@ -1,5 +1,10 @@
 import pytest
 from ..commands import commands
+from features import features
+from milvus import collections, metrics, get_collection
+from pymilvus import utility
+
+from unittest.mock import patch
 
 
 TEST_URLS = [
@@ -9,16 +14,28 @@ TEST_URLS = [
 ]
 
 
-def test_crud():
+@pytest.fixture
+def mock_model():
+    TEST_MODEL_NAME = "mock_vit_b32"
+    if utility.has_collection(TEST_MODEL_NAME):
+        utility.drop_collection(TEST_MODEL_NAME)
+    test_collection = get_collection(TEST_MODEL_NAME, 512)
+    with patch.dict(features, {TEST_MODEL_NAME: features["vit_b32"]}):
+        with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
+            with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
+                yield TEST_MODEL_NAME
+
+
+def test_crud(mock_model):
     metadata = {"tags": ["text"], "language": "japanese"}
 
-    assert [] == commands["list_images"]("vit_b32")
+    assert [] == commands["list_images"](mock_model)
 
-    commands["insert_images"]("vit_b32", [TEST_URLS[0]], [metadata])
+    commands["insert_images"](mock_model, [TEST_URLS[0]], [metadata])
 
-    assert [TEST_URLS[0]] == commands["list_images"]("vit_b32")
+    assert [TEST_URLS[0]] == commands["list_images"](mock_model)
 
-    assert 1 == commands["count"]("vit_b32")
+    assert 1 == commands["count"](mock_model)
 
     assert [
         {
@@ -26,13 +43,13 @@ def test_crud():
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
-    ] == commands["search"]("vit_b32", TEST_URLS[1])
+    ] == commands["search"](mock_model, TEST_URLS[1])
 
-    commands["remove_images"]("vit_b32", [TEST_URLS[0]])
+    commands["remove_images"](mock_model, [TEST_URLS[0]])
 
-    assert [] == commands["list_images"]("vit_b32")
+    assert [] == commands["list_images"](mock_model)
 
-    assert 0 == commands["count"]("vit_b32")
+    assert 0 == commands["count"](mock_model)
 
 
 def test_compare():
@@ -68,27 +85,27 @@ def test_image_right_too_small():
     )
 
 
-def test_list_with_cursor():
-    commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
-    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"]("vit_b32")
+def test_list_with_cursor(mock_model):
+    commands["insert_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"](mock_model)
 
-    assert [TEST_URLS[0]] == commands["list_images"]("vit_b32", TEST_URLS[1])
+    assert [TEST_URLS[0]] == commands["list_images"](mock_model, TEST_URLS[1])
 
-    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]])
-
-
-def test_list_with_limit():
-    commands["insert_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
-    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"]("vit_b32")
-
-    assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", None, 1)
-
-    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1]])
+    commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]])
 
 
-def test_list_with_cursor_and_limit():
+def test_list_with_limit(mock_model):
+    commands["insert_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"](mock_model)
+
+    assert [TEST_URLS[1]] == commands["list_images"](mock_model, None, 1)
+
+    commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]])
+
+
+def test_list_with_cursor_and_limit(mock_model):
     commands["insert_images"](
-        "vit_b32", [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]], [None] * 3
+        mock_model, [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]], [None] * 3
     )
     assert [
         TEST_URLS[2],
@@ -96,18 +113,18 @@ def test_list_with_cursor_and_limit():
         TEST_URLS[0],
     ] == commands[
         "list_images"
-    ]("vit_b32")
+    ](mock_model)
 
     assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", TEST_URLS[2], 1)
 
     commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]])
 
 
-def test_list_with_output_fields():
-    commands["insert_images"]("vit_b32", [TEST_URLS[0]], [{"meta": "data"}])
+def test_list_with_output_fields(mock_model):
+    commands["insert_images"](mock_model, [TEST_URLS[0]], [{"meta": "data"}])
 
     result = commands["list_images"](
-        "vit_b32", "", 10, ["url", "embedding", "metadata"]
+        mock_model, "", 10, ["url", "embedding", "metadata"]
     )
 
     assert all(isinstance(value, float) for value in result[0]["embedding"])
@@ -115,4 +132,4 @@ def test_list_with_output_fields():
     assert pytest.approx(sum(result[0]["embedding"])) == -0.41624113269335794
     assert result[0]["metadata"] == {"meta": "data"}
 
-    commands["remove_images"]("vit_b32", [TEST_URLS[0]])
+    commands["remove_images"](mock_model, [TEST_URLS[0]])
