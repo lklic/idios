@@ -75,6 +75,10 @@ def list_images(model_name, cursor="", limit=None, output_fields=None):
     ]
 
 
+def ping():
+    return "pong"
+
+
 def count(model_name):
     urls = list_images(model_name)
     result = len(urls)
@@ -100,4 +104,5 @@ commands = dict(
     list_images=list_images,
     count=count,
     remove_images=remove_images,
+    ping=ping,
 )

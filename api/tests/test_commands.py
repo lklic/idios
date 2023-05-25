@@ -155,3 +155,7 @@ def test_list_with_output_fields(mock_model):
     assert result[0]["metadata"] == {"meta": "data"}
 
     commands["remove_images"](mock_model, [TEST_URLS[0]])
+
+
+def test_ping():
+    assert commands["ping"]() == "pong"

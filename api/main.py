@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Query
 from pydantic import BaseModel, HttpUrl, confloat, conint
 from enum import Enum
 from typing import Literal
@@ -279,7 +279,14 @@ async def remove_image(model_name: ModelName, image: SingleImage):
     response_model=Literal["pong"],
     summary="Check for the health of the server.",
 )
-async def ping():
+async def ping(
+    rpc: bool = Query(
+        False,
+        description="Also send an RPC ping to check a round-trip with a worker via the job queue",
+    )
+):
+    if rpc:
+        return try_rpc("ping", [])
     return "pong"
 
 

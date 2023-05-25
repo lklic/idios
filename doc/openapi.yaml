@@ -561,6 +561,19 @@ paths:
   /ping:
     get:
       operationId: ping_ping_get
+      parameters:
+      - description: >-
+          Also send an RPC ping to check a round-trip with a worker via the job queue
+        in: query
+        name: rpc
+        required: false
+        schema:
+          default: false
+          description: >-
+            Also send an RPC ping to check a round-trip with a worker via the job
+            queue
+          title: Rpc
+          type: boolean
       responses:
         '200':
           content:
@@ -571,6 +584,12 @@ paths:
                 title: Response Ping Ping Get
                 type: string
           description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
       summary: Check for the health of the server.
       tags:
       - misc

@@ -13,11 +13,19 @@ def mock_rpc():
         yield mock_rpc
 
 
-def test_ping():
+def test_ping(mock_rpc):
     response = client.get("/ping")
     assert response.status_code == 200
     assert response.json() == "pong"
     assert response.text == '"pong"'
+    mock_rpc.assert_not_called()
+
+
+def test_ping_with_rpc(mock_rpc):
+    mock_rpc.return_value = "pong"
+    response = client.get("/ping?rpc=1")
+    assert response.status_code == 200
+    assert response.json() == "pong"
 
 
 def test_add_image_success(mock_rpc):
