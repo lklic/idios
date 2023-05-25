@@ -125,8 +125,11 @@ class DatabaseEntry(BaseModel):
 
 
 def try_rpc(command, args):
+    # Create a new client each time, i.e. reconnect and set up the channel
+    # This costs < 10ms, but fixes disconnections and parallelisation issues
+    rpc_client = RpcClient()
     try:
-        return rpc(command, args)
+        return rpc_client(command, args)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -137,6 +140,8 @@ def try_rpc(command, args):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=[{"msg": str(e), "type": "server_error"}],
         )
+    finally:
+        rpc_client.connection.close()
 
 
 @app.post(
@@ -288,10 +293,3 @@ async def ping(
     if rpc:
         return try_rpc("ping", [])
     return "pong"
-
-
-# Initialize the RpcClient only when we're actually going to do something,
-# i.e. not if we're just importing app to generate the openapi documentation.
-# This way RpcClient can fail fast and hard if it can't reach the rabbitmq server
-if __name__ == "main" or __name__ == "app.main":
-    rpc = RpcClient()
