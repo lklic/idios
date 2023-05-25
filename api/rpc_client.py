@@ -45,7 +45,7 @@ class RpcClient(object):
             ),
             body=json.dumps([command, args]),
         )
-        self.connection.process_data_events(time_limit=10)  # seconds
+        self.connection.process_data_events(time_limit=60)  # seconds
         if self.response_data is None:
             raise RuntimeError("No response (timeout?)")
         response = json.loads(self.response_data)
