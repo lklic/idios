@@ -3,6 +3,7 @@ from ..commands import commands
 from features import features
 from milvus import collections, metrics, get_collection
 from pymilvus import utility
+import numpy as np
 
 from unittest.mock import patch
 
@@ -86,7 +87,12 @@ def test_image_right_too_small():
 
 
 def test_list_with_cursor(mock_model):
-    commands["insert_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
+    commands["insert_images"](
+        mock_model,
+        [TEST_URLS[0], TEST_URLS[1]],
+        [None] * 2,
+        [[0] * 512] * 2,
+    )
     assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"](mock_model)
 
     assert [TEST_URLS[0]] == commands["list_images"](mock_model, TEST_URLS[1])
@@ -95,7 +101,12 @@ def test_list_with_cursor(mock_model):
 
 
 def test_list_with_limit(mock_model):
-    commands["insert_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]], [None] * 2)
+    commands["insert_images"](
+        mock_model,
+        [TEST_URLS[0], TEST_URLS[1]],
+        [None] * 2,
+        [[0] * 512] * 2,
+    )
     assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"](mock_model)
 
     assert [TEST_URLS[1]] == commands["list_images"](mock_model, None, 1)
@@ -105,7 +116,10 @@ def test_list_with_limit(mock_model):
 
 def test_list_with_cursor_and_limit(mock_model):
     commands["insert_images"](
-        mock_model, [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]], [None] * 3
+        mock_model,
+        [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]],
+        [None] * 3,
+        [[0] * 512] * 3,
     )
     assert [
         TEST_URLS[2],
@@ -121,15 +135,23 @@ def test_list_with_cursor_and_limit(mock_model):
 
 
 def test_list_with_output_fields(mock_model):
-    commands["insert_images"](mock_model, [TEST_URLS[0]], [{"meta": "data"}])
+    embedding = np.random.rand(512)
+    embedding = embedding / np.sum(embedding)
+
+    commands["insert_images"](
+        mock_model,
+        [TEST_URLS[0]],
+        [{"meta": "data"}],
+        [embedding],
+    )
 
     result = commands["list_images"](
         mock_model, "", 10, ["url", "embedding", "metadata"]
     )
 
     assert all(isinstance(value, float) for value in result[0]["embedding"])
+    assert np.all(result[0]["embedding"] == pytest.approx(embedding))
     assert result[0]["url"] == TEST_URLS[0]
-    assert pytest.approx(sum(result[0]["embedding"])) == -0.41624113269335794
     assert result[0]["metadata"] == {"meta": "data"}
 
     commands["remove_images"](mock_model, [TEST_URLS[0]])
