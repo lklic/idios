@@ -72,6 +72,7 @@ services:
       worker:
         condition: service_healthy
     environment:
+      WEB_CONCURRENCY: 16
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     volumes:
       - ../api:/app

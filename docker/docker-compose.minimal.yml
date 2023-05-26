@@ -14,6 +14,7 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
+      WEB_CONCURRENCY: 16
       RABBITMQ_URL: amqp://idios:dutEmoigAwd4@rabbitmq:5672 #TOEDIT
     logging:
       options:
