@@ -5,6 +5,9 @@ import os
 from common import JOB_QUEUE_NAME
 
 
+# Based on https://www.rabbitmq.com/tutorials/tutorial-six-python.html
+
+
 class RpcClient(object):
     def __init__(self, queue_name=JOB_QUEUE_NAME):
         self.queue_name = queue_name

@@ -48,10 +48,9 @@ Requests parameters and responses are formatted in JSON.
 
 The API has an interactive documentation at the /docs path of a live setup. This
 [interactive documentation](https://qbonnard.github.io/idios/) is also hosted
-on the repository. It is regenerated on each push to master by GitHub's CI.
-
-Each endpoint has a "Try it out" button which reveals an interface to build a
-curl request.
+on the repository. It is regenerated on each push to master by [GitHub's
+CI](./.github/workflows). Each endpoint has a "Try it out" button which reveals
+an interface to build a curl request.
 
 ## Development
 
@@ -62,7 +61,7 @@ https://docs.docker.com/compose/install/
 
 Run the development environment:
 ```sh
-docker compose -p idios -f docker/docker-compose.yml up --build --remove-orphans -d
+docker compose -p idios -f docker/docker-compose.dev.yml up --build --remove-orphans -d
 ```
 
 This command can be invoked by calling `make up` at the repository root,
@@ -72,10 +71,11 @@ than a build system. The commands are documented in the Makefile itself.
 
 ### Architecture
 
-The [development compose file](./docker/docker-compose.yml) contains the core
+The [development compose file](./docker/docker-compose.dev.yml) contains the core
 components of idios: a standalone Milvus deployment with the required etcd and
 minio services, the api service, the worker service, and the rabbitmq service.
-It also includes attu, a web UI for Milvus.
+rabbitmq is configured to serve its management web UI. The development compose
+file also includes attu, a web UI for Milvus.
 
 The api and worker service share a common image, including the
 [dependencies](./api/requirements.txt) of
@@ -192,16 +192,16 @@ docker context create idios-worker0 --docker 'host=unix:///var/run/docker.sock'
 ### Set up
 
 Edit the lines marked with a `#TOEDIT` comment in the
-[docker-compose.frontend.yaml](./docker/docker-compose.frontend.yml),
-[docker-compose.milvus.yaml](./docker/docker-compose.milvus.yml) and
-[docker-compose.worker.yaml](./docker/docker-compose.worker.yml). They are the
+[docker-compose.frontend.yml](./docker/docker-compose.frontend.yml),
+[docker-compose.milvus.yml](./docker/docker-compose.milvus.yml) and
+[docker-compose.worker.yml](./docker/docker-compose.worker.yml). They are the
 uri and credentials needed to connect to the Milvus and RabbitMQ services.
 
 Then start the components one by one:
 ```
-docker --context idios-frontend compose -p idios-frontend -f docker/docker-compose.frontend.yml up --build --remove-orphans -d
-docker --context idios-milvus compose -p idios-milvus -f docker/docker-compose.milvus.yml up --build --remove-orphans -d
-docker --context idios-worker compose -p idios-worker -f docker/docker-compose.worker.yml up --build --remove-orphans -d
+docker --context idios-frontend compose -p idios-frontend -f docker/docker-compose.frontend.yml up -d --build --remove-orphans
+docker --context idios-milvus compose -p idios-milvus -f docker/docker-compose.milvus.yml up -d --build --remove-orphans
+docker --context idios-worker compose -p idios-worker -f docker/docker-compose.worker.yml up -d --build --remove-orphans
 ```
 
 The `Makefile` includes the corresponding shortcuts:
@@ -213,3 +213,121 @@ make deploy-worker
 
 Should you change anything (in the code or the docker (compose) configuration),
 the same commands can be used to update the deployment.
+
+### Performance tuning
+
+The API can handle a specified number or request concurrently, as specified by the `WEB_CONCURRENCY` environment variable of uvicorn in the api container. This can be adjusted in the docker-compose yaml file.
+
+Several workers can be spawned on a single machine, depending on the available CPU and memory. The following command allows to specify the number of workers replicas:
+```
+docker --context idios-worker compose -p idios-worker -f docker/docker-compose.worker.yml up -d --build --remove-orphans --scale worker=4
+```
+
+### Simpler deployment
+
+If scaling isn't an issue,
+[docker-compose.minimal.yml](./docker/docker-compose.minimal.yml) shows the
+minimal setup to run Idios on a single server, without TLS certificates. In
+this scenario, we assume that this repository is directly on the production
+machine, and issue the commands in a remote SSH shell. All volumes are in same
+folder as the compose file.
+
+Edit the lines marked with a `#TOEDIT` in the
+[docker-compose.minimal.yml](./docker/docker-compose.minimal.yml) and run
+```
+make up COMPONENT=minimal
+```
+
+This should build and start the idios simple deployment (it takes about 20
+minutes on a residential connection to download the pip packages and the docker
+images).
+
+Alternatively, a docker context on a development machine can be used to build
+the images of the api and worker containers on the production server without
+having the code on it. Only the
+[docker-compose.minimal.yml](./docker/docker-compose.minimal.yml) and
+[milvus.yaml](./docker/milvus.yaml) need to be copied on the server. The images
+can be built from the development machine with:
+```
+docker --context idios-minimal compose -p idios -f docker/docker-compose.minimal.yml build api
+docker --context idios-minimal compose -p idios -f docker/docker-compose.minimal.yml build worker
+```
+The -p parameter should match the folder containing the two yaml files on the
+server.
+
+
+## Import/export collections
+
+The idios API includes import and export endpoints to allow for the
+backup/restoration, migration or out of band analysis of the collections. The
+[dump.py](./api/dump.py) script iteratively exports the entities of the
+collection by batch to avoid time outs. Its usage is described with the `-h`
+command line option. The resulting json files can be loaded into another Idios
+instance with a command like:
+```
+for f in export-dir/*; do curl -H 'Content-Type: application/json' -d "@$f" http://localhost:4213/models/vit_b32/import; done
+```
+
+## Orders of magnitudes
+
+Following are some empirical measures :
+
+### Memory usage
+
+For 168803 images stored in a 512-dimensional vector embedding (vit-b32):
+- etcd     379MB
+- milvus   2GB
+- minio    160MB
+- rabbitmq 130MB
+- worker   830MB
+- api      24MB
+
+For 471838 images stored in a 512-dimensional vector embedding (vit-b32):
+- etcd      126M
+- milvus    3G
+- minio     135M
+- rabbitmq  131M
+- worker    889MB
+- api       71MB
+
+### Disk usage
+
+For 168803 images stored in a 512-dimensional vector embedding (vit-b32):
+- etcd       8 KiB
+- milvus   680 MiB
+- minio    1.6 GiB
+- rabbitmq 472 KiB
+
+For 471838 images stored in a 512-dimensional vector embedding (vit-b32):
+- etcd      411M
+- milvus    2.5G
+- minio     1.8G
+- rabbitmq  448K
+
+An export of the urls and features (no metadata) takes 5.1GB.
+
+### Timings
+
+On an server with an Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz 32 GB, no GPU:
+- using the API to add images (including embedding computation) can be done at
+  2.5 images/s. 4 workers bring this rate to 10 images/s, but more seem to be
+  counterproductive.
+- similarity search takes ~0.5 seconds, ~1.5 if milvus is busy adding images.
+- exporting 471838 entities takes about an hour
+
+On a laptop with an i7-4720HQ CPU, 16GB, no GPU:
+- importing entities takes about 2s per 1000-entities batch. It can double (if
+  milvus does some housekeeping background task ?)
+- Batching insertions in milvus has a very significant impact : 1000 individual
+  insertions take ~7 s, but inserting a 1000-batch takes ~100ms
+- Batching feature computations has a smaller impact : 100 individual
+  computations take ~9.3s, but 100-batch computation takes ~6.7s
+- Querying by url takes around 400ms
+- Downloading an image and computing its vit_b32 features takes around 200ms
+- Inserting an image takes around 4ms
+
+## References
+
+- [FastAPI](https://fastapi.tiangolo.com/tutorial/)
+- [Milvus API](https://milvus.io/docs/check_collection.md)
+- [Docker](https://docs.docker.com/reference/)

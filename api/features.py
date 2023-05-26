@@ -22,7 +22,7 @@ def load_image_from_url(url):
         return image.copy()  # ensure the image data is not released
 
 
-# https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py
+# Based on https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py
 class CLIPFeatures:
     def __init__(self, model_name):
         self.model = CLIPModel.from_pretrained(model_name)
