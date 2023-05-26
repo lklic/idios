@@ -5,8 +5,11 @@ default:
 # Development commands
 ################################################################################
 
+# The default docker compose configuration file is the development one
+COMPONENT=dev
+
 # Avoid the repetition of docker compose parameter
-COMPOSE=docker compose -p idios -f docker/docker-compose.yml
+COMPOSE=docker compose -p idios -f docker/docker-compose.${COMPONENT}.yml
 
 # Avoid the repetition of to start something in the dev container.
 # The dev container has all the dependencies for both the api and the worker,
