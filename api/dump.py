@@ -36,7 +36,7 @@ while True:
 
     try:
         response = requests.post(
-            f"{args.model_endpoint}/export",
+            f"{args.model_endpoint}/dump",
             json={"limit": args.batch_size, "cursor": cursor},
         )
         response.raise_for_status()

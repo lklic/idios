@@ -177,7 +177,7 @@ def check_json_string_length(metadata):
 
 
 @app.post(
-    "/models/{model_name}/import",
+    "/models/{model_name}/restore",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["model"],
     summary="""
@@ -185,7 +185,7 @@ Adds multiple image embeddings to the index.
 Existing urls will have their metadata replaced with the provided one.
     """.strip(),
 )
-async def bulk_import(model_name: ModelName, images: list[DatabaseEntry]):
+async def restore(model_name: ModelName, images: list[DatabaseEntry]):
     # The type declaration generates the openapi documentation as expected
     # but results in this rather ugly line. There may be a better use of pydantic
     # images = images.__root__
@@ -224,7 +224,8 @@ async def compare(model_name: ModelName, images: ImagePair):
     "/models/{model_name}/urls",
     tags=["model"],
     summary="""
-List the urls of all images. Use the pagination cursor to make sure that the enumeration reached the end.
+List the urls of all images.
+Use the pagination cursor to make sure that the enumeration reached the end.
 """.strip(),
     response_model=list[ImageUrl],
 )
@@ -237,15 +238,15 @@ async def list_images(
 
 
 @app.post(
-    "/models/{model_name}/export",
+    "/models/{model_name}/dump",
     tags=["model"],
     summary="""
-Export the urls, the embedding and the metadata of all images.
+Dump the urls, the embedding and the metadata of all images.
 Use the pagination cursor to make sure that the enumeration reached the end.
 """.strip(),
     response_model=list[DatabaseEntry],
 )
-async def list_images(
+async def dump(
     model_name: ModelName, pagination: Pagination = Pagination(cursor=None, limit=None)
 ):
     return try_rpc(

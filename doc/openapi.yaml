@@ -368,9 +368,9 @@ paths:
       summary: Count the number of images in in a given index
       tags:
       - model
-  /models/{model_name}/export:
+  /models/{model_name}/dump:
     post:
-      operationId: list_images_models__model_name__export_post
+      operationId: dump_models__model_name__dump_post
       parameters:
       - in: path
         name: model_name
@@ -392,7 +392,7 @@ paths:
               schema:
                 items:
                   $ref: '#/components/schemas/DatabaseEntry'
-                title: Response List Images Models  Model Name  Export Post
+                title: Response Dump Models  Model Name  Dump Post
                 type: array
           description: Successful Response
         '422':
@@ -402,14 +402,41 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: >-
-        Export the urls, the embedding and the metadata of all images.
+        Dump the urls, the embedding and the metadata of all images.
 
         Use the pagination cursor to make sure that the enumeration reached the end.
       tags:
       - model
-  /models/{model_name}/import:
+  /models/{model_name}/remove:
     post:
-      operationId: bulk_import_models__model_name__import_post
+      operationId: remove_image_models__model_name__remove_post
+      parameters:
+      - in: path
+        name: model_name
+        required: true
+        schema:
+          $ref: '#/components/schemas/ModelName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleImage'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Remove an image embedding from the index.
+      tags:
+      - model
+  /models/{model_name}/restore:
+    post:
+      operationId: restore_models__model_name__restore_post
       parameters:
       - in: path
         name: model_name
@@ -438,33 +465,6 @@ paths:
         Adds multiple image embeddings to the index.
 
         Existing urls will have their metadata replaced with the provided one.
-      tags:
-      - model
-  /models/{model_name}/remove:
-    post:
-      operationId: remove_image_models__model_name__remove_post
-      parameters:
-      - in: path
-        name: model_name
-        required: true
-        schema:
-          $ref: '#/components/schemas/ModelName'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SingleImage'
-        required: true
-      responses:
-        '204':
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Remove an image embedding from the index.
       tags:
       - model
   /models/{model_name}/search:
@@ -554,8 +554,9 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: >-
-        List the urls of all images. Use the pagination cursor to make sure that the
-        enumeration reached the end.
+        List the urls of all images.
+
+        Use the pagination cursor to make sure that the enumeration reached the end.
       tags:
       - model
   /ping:

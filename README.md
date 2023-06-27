@@ -256,16 +256,16 @@ The -p parameter should match the folder containing the two yaml files on the
 server.
 
 
-## Import/export collections
+## Dump/restore collections
 
-The idios API includes import and export endpoints to allow for the
+The idios API includes dump and restore endpoints to allow for the
 backup/restoration, migration or out of band analysis of the collections. The
-[dump.py](./api/dump.py) script iteratively exports the entities of the
+[dump.py](./api/dump.py) script iteratively dumps the entities of the
 collection by batch to avoid time outs. Its usage is described with the `-h`
 command line option. The resulting json files can be loaded into another Idios
 instance with a command like:
 ```
-for f in export-dir/*; do curl -H 'Content-Type: application/json' -d "@$f" http://localhost:4213/models/vit_b32/import; done
+for f in dump-dir/*; do curl -H 'Content-Type: application/json' -d "@$f" http://localhost:4213/models/vit_b32/restore; done
 ```
 
 ## Orders of magnitudes
@@ -304,7 +304,7 @@ For 471838 images stored in a 512-dimensional vector embedding (vit-b32):
 - minio     1.8G
 - rabbitmq  448K
 
-An export of the urls and features (no metadata) takes 5.1GB.
+A dump of the urls and features (no metadata) takes 5.1GB.
 
 ### Timings
 
@@ -313,10 +313,10 @@ On an server with an Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz 32 GB, no GPU
   2.5 images/s. 4 workers bring this rate to 10 images/s, but more seem to be
   counterproductive.
 - similarity search takes ~0.5 seconds, ~1.5 if milvus is busy adding images.
-- exporting 471838 entities takes about an hour
+- dumpinging 471838 entities takes about an hour
 
 On a laptop with an i7-4720HQ CPU, 16GB, no GPU:
-- importing entities takes about 2s per 1000-entities batch. It can double (if
+- Restoring entities takes about 2s per 1000-entities batch. It can double (if
   milvus does some housekeeping background task ?)
 - Batching insertions in milvus has a very significant impact : 1000 individual
   insertions take ~7 s, but inserting a 1000-batch takes ~100ms

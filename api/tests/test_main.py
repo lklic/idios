@@ -360,7 +360,7 @@ def test_list_images_returns_500_when_rpc_error(mock_rpc):
     mock_rpc.assert_called_once_with("count", ["vit_b32"])
 
 
-def test_export_success(mock_rpc):
+def test_dump_success(mock_rpc):
     mock_rpc.return_value = [
         {
             "url": "http://example.com/image.jpg",
@@ -369,7 +369,7 @@ def test_export_success(mock_rpc):
         },
     ]
     response = client.post(
-        "/models/vit_b32/export",
+        "/models/vit_b32/dump",
     )
     assert response.status_code == 200
     assert response.json() == [
@@ -390,10 +390,10 @@ def test_export_success(mock_rpc):
     )
 
 
-def test_bulk_import_success(mock_rpc):
+def test_restore_success(mock_rpc):
     mock_rpc.return_value = None
     response = client.post(
-        "/models/vit_b32/import",
+        "/models/vit_b32/restore",
         json=[
             {
                 "url": "http://example.com/image.jpg",
