@@ -42,8 +42,8 @@ COPY ./requirements-worker.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # Download models
-COPY ./features.py /app/
-RUN python features.py
+COPY ./embeddings.py /app/
+RUN python embeddings.py
 
 ENV PYTHONUNBUFFERED=1
 STOPSIGNAL SIGINT

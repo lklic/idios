@@ -23,7 +23,7 @@ def load_image_from_url(url):
 
 
 # Based on https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py
-class CLIPFeatures:
+class CLIP:
     def __init__(self, model_name):
         self.model = CLIPModel.from_pretrained(model_name)
         self.processor = CLIPProcessor.from_pretrained(model_name)
@@ -31,28 +31,28 @@ class CLIPFeatures:
         self.model.to(self.device)
 
     @torch.no_grad()
-    def get_text_features(self, text):
+    def get_text_embedding(self, text):
         inputs = self.processor(text=text, return_tensors="pt")
         inputs = inputs.to(self.device)
-        text_features = self.model.get_text_features(**inputs)
-        text_features /= text_features.norm(dim=-1, keepdim=True)
-        text_features = text_features.tolist()
-        return text_features
+        text_embedding = self.model.get_text_features(**inputs)
+        text_embedding /= text_embedding.norm(dim=-1, keepdim=True)
+        text_embedding = text_embedding.tolist()
+        return text_embedding
 
     @torch.no_grad()
-    def get_image_features(self, images):
+    def get_image_embedding(self, images):
         inputs = self.processor(images=images, return_tensors="pt")
         inputs = inputs.to(self.device)
-        image_features = self.model.get_image_features(**inputs)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        image_features = image_features.tolist()
-        return image_features
+        image_embedding = self.model.get_image_features(**inputs)
+        image_embedding /= image_embedding.norm(dim=-1, keepdim=True)
+        image_embedding = image_embedding.tolist()
+        return image_embedding
 
     def extract(self, image):
-        return self.get_image_features(image)[0]
+        return self.get_image_embedding(image)[0]
 
 
-features = {
-    "vit_b32": CLIPFeatures("openai/clip-vit-base-patch32"),
-    # "vit_l14": CLIPFeatures("openai/clip-vit-large-patch14"),
+embeddings = {
+    "vit_b32": CLIP("openai/clip-vit-base-patch32"),
+    # "vit_l14": CLIP("openai/clip-vit-large-patch14"),
 }

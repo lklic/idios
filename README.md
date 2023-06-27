@@ -97,7 +97,7 @@ The [`api`](./api) folder contains two groups of source files:
   - [openapi.py](./api/openapi.py) is a script to export the static API reference
 
 - the worker code :
-  - [features.py](./api/features.py) leverages models to generate embeddings
+  - [embeddings.py](./api/embeddings.py) leverages models to generate embeddings
     from images at given urls
   - [milvus.py](./api/milvus.py) wraps calls to the Milvus API
   - [commands.py](./api/commands.py) integrates the  together
@@ -304,7 +304,7 @@ For 471838 images stored in a 512-dimensional vector embedding (vit-b32):
 - minio     1.8G
 - rabbitmq  448K
 
-A dump of the urls and features (no metadata) takes 5.1GB.
+A dump of the urls and embeddings (no metadata) takes 5.1GB.
 
 ### Timings
 
@@ -320,10 +320,10 @@ On a laptop with an i7-4720HQ CPU, 16GB, no GPU:
   milvus does some housekeeping background task ?)
 - Batching insertions in milvus has a very significant impact : 1000 individual
   insertions take ~7 s, but inserting a 1000-batch takes ~100ms
-- Batching feature computations has a smaller impact : 100 individual
+- Batching embedding computations has a smaller impact : 100 individual
   computations take ~9.3s, but 100-batch computation takes ~6.7s
 - Querying by url takes around 400ms
-- Downloading an image and computing its vit_b32 features takes around 200ms
+- Downloading an image and computing its vit_b32 embedding takes around 200ms
 - Inserting an image takes around 4ms
 
 ## References

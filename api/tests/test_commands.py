@@ -1,6 +1,6 @@
 import pytest
 from ..commands import commands
-from features import features
+from embeddings import embeddings
 from milvus import collections, metrics, get_collection
 from pymilvus import utility
 import numpy as np
@@ -21,7 +21,7 @@ def mock_model():
     if utility.has_collection(TEST_MODEL_NAME):
         utility.drop_collection(TEST_MODEL_NAME)
     test_collection = get_collection(TEST_MODEL_NAME, 512)
-    with patch.dict(features, {TEST_MODEL_NAME: features["vit_b32"]}):
+    with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["vit_b32"]}):
         with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
             with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
                 yield TEST_MODEL_NAME

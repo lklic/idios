@@ -4,7 +4,7 @@ import functools
 import random
 from PIL import Image
 
-from ..features import load_image_from_url, features
+from ..embeddings import load_image_from_url, embeddings
 
 
 def test_load_image_from_url():
@@ -31,7 +31,7 @@ def test_extract_vit_b32():
     image_data = bytes([random.randint(0, 255) for _ in range(500 * 500 * 3)])
     image = Image.frombytes("RGB", (500, 500), image_data)
 
-    b32 = features["vit_b32"]
+    b32 = embeddings["vit_b32"]
     embedding = b32.extract(image)
     assert 512 == len(embedding)
     assert pytest.approx(-1.00633253128035) == sum(embedding)
@@ -62,14 +62,14 @@ def batch_test_images():
 def test_individual_extract(benchmark):
     def extract_each():
         for image in batch_test_images():
-            features["vit_b32"].extract(image)
+            embeddings["vit_b32"].extract(image)
 
     benchmark(extract_each)
 
 
 @pytest.mark.benchmark
 def test_batch_extract(benchmark):
-    benchmark(features["vit_b32"].extract, batch_test_images())
+    benchmark(embeddings["vit_b32"].extract, batch_test_images())
 
 
 def test_unresized_image():
@@ -78,4 +78,4 @@ def test_unresized_image():
     url2 = "https://artresearch-iiif.s3.eu-west-1.amazonaws.com/marburg/gm1159076.jpg"
 
     images = [load_image_from_url(url) for url in [url0, url1, url2]]
-    [features["vit_b32"].extract(image) for image in images]
+    [embeddings["vit_b32"].extract(image) for image in images]

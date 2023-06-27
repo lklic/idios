@@ -1,21 +1,21 @@
 import json
 import numpy as np
 
-from features import load_image_from_url, features
+from embeddings import load_image_from_url, embeddings
 from milvus import collections, metrics
 
 
-def insert_images(model_name, urls, metadatas, embeddings=None):
-    if embeddings is None:
-        embeddings = [
-            features[model_name].extract(load_image_from_url(url)) for url in urls
+def insert_images(model_name, urls, metadatas, image_embeddings=None):
+    if image_embeddings is None:
+        image_embeddings = [
+            embeddings[model_name].extract(load_image_from_url(url)) for url in urls
         ]
     metadatas = [json.dumps(metadata) for metadata in metadatas]
-    collections[model_name].insert([urls, embeddings, metadatas])
+    collections[model_name].insert([urls, image_embeddings, metadatas])
 
 
 def search(model_name, url):
-    embedding = features[model_name].extract(load_image_from_url(url))
+    embedding = embeddings[model_name].extract(load_image_from_url(url))
     search_results = collections[model_name].search(
         data=[embedding],
         anns_field="embedding",
@@ -41,8 +41,8 @@ def search(model_name, url):
 def compare(model_name, url_left, url_right):
     # alternatively, we could first try to fetch the embeddings from milvus in
     # case their computation is significantly more expensive than a query
-    left = features[model_name].extract(load_image_from_url(url_left))
-    right = features[model_name].extract(load_image_from_url(url_right))
+    left = embeddings[model_name].extract(load_image_from_url(url_left))
+    right = embeddings[model_name].extract(load_image_from_url(url_right))
 
     # calc_distance() has been removed from milvus
     # it's a bit overkill anyway if we don't compare with vectors from the db

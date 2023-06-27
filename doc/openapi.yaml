@@ -142,7 +142,7 @@ components:
       type: object
     ModelName:
       description: >-
-        The enumeration of supported models to extract features/embeddings from images
+        The enumeration of supported models to extract embeddings from images
       enum:
       - vit_b32
       title: ModelName

@@ -12,7 +12,7 @@ from pymilvus import (
 
 import os
 
-from common import feature_dimensions, MAX_METADATA_LENGTH
+from common import embedding_dimensions, MAX_METADATA_LENGTH
 
 DEFAULT_ROOT_PASSWORD = "Milvus"
 
@@ -98,7 +98,7 @@ def destroy_all_data_from_all_collections_in_the_whole_database():
 
 
 collections = {
-    name: get_collection(name, dim) for name, dim in feature_dimensions.items()
+    name: get_collection(name, dim) for name, dim in embedding_dimensions.items()
 }
 metrics = {
     name: collection.index()._index_params["metric_type"]
