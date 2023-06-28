@@ -53,6 +53,10 @@ def test_crud(mock_model):
     assert 0 == commands["count"](mock_model)
 
 
+def test_insert_nothing(mock_model):
+    commands["insert_images"](mock_model, [], [])
+
+
 def test_remove_multiple_images(mock_model):
     assert [] == commands["list_images"](mock_model)
 
@@ -70,6 +74,32 @@ def test_remove_multiple_images(mock_model):
     assert [] == commands["list_images"](mock_model)
 
     assert 0 == commands["count"](mock_model)
+
+
+def test_insert_without_replacing(mock_model):
+    commands["insert_images"](
+        mock_model,
+        [TEST_URLS[0]],
+        [None],
+        [[0] * 512],
+    )
+    assert [TEST_URLS[0]] == commands["list_images"](mock_model)
+
+    assert {"added": [TEST_URLS[1]], "found": [TEST_URLS[0]]} == commands[
+        "insert_images"
+    ](
+        mock_model,
+        [TEST_URLS[0], TEST_URLS[1]],
+        [None] * 2,
+        None,
+        replace_existing=False,
+    )
+    result = commands["list_images"](mock_model, output_fields=["url", "embedding"])
+    assert result[0]["url"] == TEST_URLS[1]
+    assert result[1]["url"] == TEST_URLS[0]
+    assert result[1]["embedding"] == [0] * 512
+
+    commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]])
 
 
 def test_compare():

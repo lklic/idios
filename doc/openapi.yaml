@@ -285,7 +285,7 @@ openapi: 3.0.2
 paths:
   /models/{model_name}/add:
     post:
-      operationId: insert_image_models__model_name__add_post
+      operationId: upsert_image_models__model_name__add_post
       parameters:
       - in: path
         name: model_name
@@ -496,6 +496,38 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Search images with similar embeddings in the index
+      tags:
+      - model
+  /models/{model_name}/search_add:
+    post:
+      operationId: insert_image_models__model_name__search_add_post
+      parameters:
+      - in: path
+        name: model_name
+        required: true
+        schema:
+          $ref: '#/components/schemas/ModelName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageAndMetada'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '409':
+          description: Image already inserted
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: >-
+        Adds a new image embedding to the index.
+
+        Adding an existing url will trigger a 409 HTTP error.
       tags:
       - model
   /models/{model_name}/urls:

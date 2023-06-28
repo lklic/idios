@@ -10,13 +10,42 @@ def format_url_list(urls):
     return f'[{",".join(quoted_urls)}]'
 
 
-def insert_images(model_name, urls, metadatas, image_embeddings=None):
-    if image_embeddings is None:
-        image_embeddings = [
-            embeddings[model_name].extract(load_image_from_url(url)) for url in urls
+def insert_images(
+    model_name, urls, metadatas, image_embeddings=None, replace_existing=True
+):
+    existing_urls = []
+    if not replace_existing:
+        existing_urls = [
+            search_result["url"]
+            for search_result in collections[model_name].query(
+                f"url in {format_url_list(urls)}",
+                consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+            )
         ]
-    metadatas = [json.dumps(metadata) for metadata in metadatas]
-    collections[model_name].insert([urls, image_embeddings, metadatas])
+
+    new_urls = [url for url in urls if url not in existing_urls]
+    image_embeddings = (
+        [embeddings[model_name].extract(load_image_from_url(url)) for url in new_urls]
+        if image_embeddings is None
+        else [
+            embedding
+            for url, embedding in zip(urls, image_embeddings)
+            if url not in existing_urls
+        ]
+    )
+    metadatas = [
+        json.dumps(metadata)
+        for url, metadata in zip(urls, metadatas)
+        if url not in existing_urls
+    ]
+
+    if len(new_urls) > 0:
+        collections[model_name].insert([new_urls, image_embeddings, metadatas])
+
+    return {
+        "added": new_urls,
+        "found": existing_urls,
+    }
 
 
 def search(model_name, url):

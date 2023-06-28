@@ -148,6 +148,50 @@ def test_add_image_server_error(mock_rpc):
     )
 
 
+def test_search_add_image_success(mock_rpc):
+    mock_rpc.return_value = {"added": ["http://example.com/image.jpg"], "found": []}
+    response = client.post(
+        "/models/vit_b32/search_add",
+        json={
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+        },
+    )
+    assert response.status_code == 204
+    mock_rpc.assert_called_once_with(
+        "insert_images",
+        [
+            "vit_b32",
+            ["http://example.com/image.jpg"],
+            [{"tags": ["cat", "cute"]}],
+            None,
+            False,
+        ],
+    )
+
+
+def test_search_add_image_conflict(mock_rpc):
+    mock_rpc.return_value = {"added": [], "found": ["http://example.com/image.jpg"]}
+    response = client.post(
+        "/models/vit_b32/search_add",
+        json={
+            "url": "http://example.com/image.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+        },
+    )
+    assert response.status_code == 409
+    mock_rpc.assert_called_once_with(
+        "insert_images",
+        [
+            "vit_b32",
+            ["http://example.com/image.jpg"],
+            [{"tags": ["cat", "cute"]}],
+            None,
+            False,
+        ],
+    )
+
+
 def test_search_success(mock_rpc):
     mock_rpc.return_value = [
         {

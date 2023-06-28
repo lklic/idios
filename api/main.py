@@ -153,11 +153,43 @@ Adds a new image embedding to the index.
 Adding an existing url will replace the metadata with the provided one.
     """.strip(),
 )
-async def insert_image(model_name: ModelName, image: ImageAndMetada):
+async def upsert_image(model_name: ModelName, image: ImageAndMetada):
     try_rpc(
         "insert_images",
         [model_name.value, [image.url], [check_json_string_length(image.metadata)]],
     )
+
+
+@app.post(
+    "/models/{model_name}/search_add",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["model"],
+    summary="""
+Adds a new image embedding to the index.
+Adding an existing url will trigger a 409 HTTP error.
+    """.strip(),
+    responses={409: {"description": "Image already inserted"}},
+)
+async def insert_image(model_name: ModelName, image: ImageAndMetada):
+    result = try_rpc(
+        "insert_images",
+        [
+            model_name.value,
+            [image.url],
+            [check_json_string_length(image.metadata)],
+            None,
+            False,
+        ],
+    )
+
+    if (
+        "found" in result
+        and isinstance(result["found"], list)
+        and len(result["found"]) > 0
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Image already inserted"
+        )
 
 
 def check_json_string_length(metadata):
