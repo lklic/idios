@@ -53,6 +53,25 @@ def test_crud(mock_model):
     assert 0 == commands["count"](mock_model)
 
 
+def test_remove_multiple_images(mock_model):
+    assert [] == commands["list_images"](mock_model)
+
+    commands["insert_images"](
+        mock_model,
+        [TEST_URLS[0], TEST_URLS[1]],
+        [None] * 2,
+        [[0] * 512] * 2,
+    )
+
+    assert [TEST_URLS[1], TEST_URLS[0]] == commands["list_images"](mock_model)
+
+    commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]])
+
+    assert [] == commands["list_images"](mock_model)
+
+    assert 0 == commands["count"](mock_model)
+
+
 def test_compare():
     assert pytest.approx(11.650939784262505) == commands["compare"](
         "vit_b32", TEST_URLS[0], TEST_URLS[1]
@@ -129,9 +148,9 @@ def test_list_with_cursor_and_limit(mock_model):
         "list_images"
     ](mock_model)
 
-    assert [TEST_URLS[1]] == commands["list_images"]("vit_b32", TEST_URLS[2], 1)
+    assert [TEST_URLS[1]] == commands["list_images"](mock_model, TEST_URLS[2], 1)
 
-    commands["remove_images"]("vit_b32", [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]])
+    commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1], TEST_URLS[2]])
 
 
 def test_list_with_output_fields(mock_model):

@@ -5,6 +5,11 @@ from embeddings import load_image_from_url, embeddings
 from milvus import collections, metrics
 
 
+def format_url_list(urls):
+    quoted_urls = [f'"{url}"' for url in urls]
+    return f'[{",".join(quoted_urls)}]'
+
+
 def insert_images(model_name, urls, metadatas, image_embeddings=None):
     if image_embeddings is None:
         image_embeddings = [
@@ -94,7 +99,7 @@ def remove_images(model_name, urls):
     # operators can be used only in query or scalar filtering in vector search.
     # See Boolean Expression Rules for more information.
     # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
-    collections[model_name].delete(f'url in ["{",".join(urls)}"]')
+    collections[model_name].delete(f"url in {format_url_list(urls)}")
 
 
 commands = dict(
