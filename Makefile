@@ -18,7 +18,7 @@ RUN=${COMPOSE} run --remove-orphans --build --rm dev
 
 # Watch for file changes and runs the `watched` command.
 # This requires entr to be installed on the development system
-WATCH_CMD=find -not -path '*/.*' -not -path '*__pycache__*' -o -name '.dockerignore' | entr -cd make watched
+WATCH_CMD=find -not -path '*/.*' -not -path '*__pycache__*' -not -path './docker/volumes/*' -o -name '.dockerignore' | entr -cd make watched
 watch:
 	${WATCH_CMD} ; while [ $$? -ne 0 ]; do ${WATCH_CMD}; done
 
@@ -53,11 +53,11 @@ test:
 # The echo commands informally compare the actual to the expected result.
 API_URL=localhost:4213
 integration-test:
-	curl -X POST ${API_URL}/models/vit_b32/urls
+	curl -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
 	@echo =?=[]
 	curl -H "Content-Type: application/json" -d '{"url": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg"}' ${API_URL}/models/vit_b32/add
 	@echo =?=
-	curl -X POST ${API_URL}/models/vit_b32/urls
+	curl -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
 	@echo =?=[url]
 	curl -H "Content-Type: application/json" -d '{"url": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg"}' ${API_URL}/models/vit_b32/search
 	@echo =?=[result]
