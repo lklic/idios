@@ -57,6 +57,21 @@ def test_insert_nothing(mock_model):
     commands["insert_images"](mock_model, [], [])
 
 
+def test_search_more_results(mock_model):
+    urls = [f"url{i}" for i in range(1000)]
+    commands["insert_images"](
+        mock_model,
+        urls,
+        [None] * 1000,
+        [[0] * 512] * 1000,
+    )
+    results = commands["search"](mock_model, TEST_URLS[1])
+    assert 10 == len(results)
+    results = commands["search"](mock_model, TEST_URLS[1], 100)
+    assert 100 == len(results)
+    commands["remove_images"](mock_model, urls)
+
+
 def test_remove_multiple_images(mock_model):
     assert [] == commands["list_images"](mock_model)
 

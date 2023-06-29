@@ -92,6 +92,11 @@ class SingleImage(BaseModel):
     url: ImageUrl
 
 
+class SearchParameters(BaseModel):
+    url: ImageUrl
+    limit: conint(ge=1) = 10
+
+
 class ImagePair(BaseModel):
     url_left: ImageUrl
     url_right: ImageUrl
@@ -238,8 +243,8 @@ async def restore(model_name: ModelName, images: list[DatabaseEntry]):
     summary="Search images with similar embeddings in the index",
     response_model=SearchResults,
 )
-async def search(model_name: ModelName, image: SingleImage):
-    return try_rpc("search", [model_name.value, image.url])
+async def search(model_name: ModelName, params: SearchParameters):
+    return try_rpc("search", [model_name.value, params.url, params.limit])
 
 
 @app.post(

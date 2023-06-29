@@ -48,17 +48,19 @@ def insert_images(
     }
 
 
-def search(model_name, url):
+def search(model_name, url, limit=10):
     embedding = embeddings[model_name].extract(load_image_from_url(url))
     search_results = collections[model_name].search(
         data=[embedding],
         anns_field="embedding",
         param={
             "metric_type": metrics[model_name],
-            "params": {"nprobe": 10},
+            "params": {
+                "nprobe": 64
+            },  # https://milvus.io/docs/v1.1.1/performance_faq.md
         },
         output_fields=["metadata"],
-        limit=10,
+        limit=limit,
         expr=None,
         consistency_level="Strong",  # https://milvus.io/docs/consistency.md
     )

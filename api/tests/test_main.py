@@ -223,7 +223,26 @@ def test_search_success(mock_rpc):
         },
     ]
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg"]
+        "search", ["vit_b32", "http://example.com/query.jpg", 10]
+    )
+
+
+def test_search_success_with_limit(mock_rpc):
+    mock_rpc.return_value = [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "similarity": 10,
+        }
+    ] * 100
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"url": "http://example.com/query.jpg", "limit": 100},
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 100
+    mock_rpc.assert_called_once_with(
+        "search", ["vit_b32", "http://example.com/query.jpg", 100]
     )
 
 
@@ -236,7 +255,7 @@ def test_search_empty(mock_rpc):
     assert response.status_code == 200
     assert response.json() == []
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg"]
+        "search", ["vit_b32", "http://example.com/query.jpg", 10]
     )
 
 
@@ -257,7 +276,7 @@ def test_search_returns_500_when_rpc_error(mock_rpc):
     )
     assert response.status_code == 500
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg"]
+        "search", ["vit_b32", "http://example.com/query.jpg", 10]
     )
 
 
