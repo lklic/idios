@@ -93,7 +93,7 @@ components:
       type: object
     ImagePair:
       properties:
-        url_left:
+        other:
           description: "The url serves as the primary key in the Milvus collection.\
             \ For consistancy, image URLs should not have escape characters. Optionally,\
             \ additional metadata can be associated with the image as an arbitrary\
@@ -114,7 +114,7 @@ components:
           example: https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
           title: URL of the image
           type: string
-        url_right:
+        url:
           description: "The url serves as the primary key in the Milvus collection.\
             \ For consistancy, image URLs should not have escape characters. Optionally,\
             \ additional metadata can be associated with the image as an arbitrary\
@@ -136,8 +136,8 @@ components:
           title: URL of the image
           type: string
       required:
-      - url_left
-      - url_right
+      - url
+      - other
       title: ImagePair
       type: object
     ModelName:

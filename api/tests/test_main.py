@@ -284,7 +284,7 @@ def test_compare_returns_similarity(mock_rpc):
     mock_rpc.return_value = 0.42
     response = client.post(
         "/models/vit_b32/compare",
-        json={"url_left": "http://left.org", "url_right": "http://right.org"},
+        json={"url": "http://left.org", "other": "http://right.org"},
     )
     assert response.status_code == 200
     assert pytest.approx(0.42) == response.json()
@@ -296,7 +296,7 @@ def test_compare_returns_similarity(mock_rpc):
 def test_compare_returns_422_when_invalid_url(mock_rpc):
     response = client.post(
         "/models/vit_b32/compare",
-        json={"url_left": "not_a_url", "url_right": "http://right.org"},
+        json={"url": "not_a_url", "other": "http://right.org"},
     )
     assert response.status_code == 422
     mock_rpc.assert_not_called()
@@ -306,7 +306,7 @@ def test_compare_returns_500_when_rpc_error(mock_rpc):
     mock_rpc.side_effect = RuntimeError("Internal server error")
     response = client.post(
         "/models/vit_b32/compare",
-        json={"url_left": "http://left.org", "url_right": "http://right.org"},
+        json={"url": "http://left.org", "other": "http://right.org"},
     )
     assert response.status_code == 500
     mock_rpc.assert_called_once_with(

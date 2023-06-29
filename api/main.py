@@ -83,23 +83,20 @@ The metadata is parsed as JSON to ensure its validity and regenerated to possibl
         )
 
 
-class ImageAndMetada(BaseModel):
-    url: ImageUrl
-    metadata: ImageMetadata | None
-
-
 class SingleImage(BaseModel):
     url: ImageUrl
 
 
-class SearchParameters(BaseModel):
-    url: ImageUrl
+class ImageAndMetada(SingleImage):
+    metadata: ImageMetadata | None
+
+
+class SearchParameters(SingleImage):
     limit: conint(ge=1) = 10
 
 
-class ImagePair(BaseModel):
-    url_left: ImageUrl
-    url_right: ImageUrl
+class ImagePair(SingleImage):
+    other: ImageUrl
 
 
 class SimilarityScore(BaseModel):
@@ -113,9 +110,7 @@ class Pagination(BaseModel):
     limit: conint(ge=1, le=MAX_MILVUS_PAGINATION) | None
 
 
-class SearchResult(BaseModel):
-    url: ImageUrl
-    metadata: ImageMetadata | None
+class SearchResult(ImageAndMetada):
     similarity: SimilarityScore
 
 
@@ -123,10 +118,8 @@ class SearchResults(BaseModel):
     __root__: list[SearchResult]
 
 
-class DatabaseEntry(BaseModel):
-    url: ImageUrl
+class DatabaseEntry(ImageAndMetada):
     embedding: list[float]
-    metadata: ImageMetadata | None
 
 
 def try_rpc(command, args):
@@ -254,7 +247,7 @@ async def search(model_name: ModelName, params: SearchParameters):
     response_model=SimilarityScore,
 )
 async def compare(model_name: ModelName, images: ImagePair):
-    return try_rpc("compare", [model_name.value, images.url_left, images.url_right])
+    return try_rpc("compare", [model_name.value, images.url, images.other])
 
 
 @app.post(
