@@ -47,7 +47,7 @@ Idios can be controlled using a simple HTTP API that listens on port 4213.
 Requests parameters and responses are formatted in JSON.
 
 The API has an interactive documentation at the /docs path of a live setup. This
-[interactive documentation](https://qbonnard.github.io/idios/) is also hosted
+[interactive documentation](https://lklic.github.io/idios/) is also hosted
 on the repository. It is regenerated on each push to master by [GitHub's
 CI](./.github/workflows). Each endpoint has a "Try it out" button which reveals
 an interface to build a curl request.
