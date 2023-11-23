@@ -268,6 +268,49 @@ def test_search_returns_422_when_invalid_url(mock_rpc):
     mock_rpc.assert_not_called()
 
 
+def test_search_text_success(mock_rpc):
+    mock_rpc.return_value = [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "similarity": 10,
+        },
+        {
+            "url": "http://example.com/image2.jpg",
+            "metadata": None,
+            "similarity": 20,
+        },
+    ]
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"text": "cute cat"},
+    )
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "similarity": 10,
+        },
+        {
+            "url": "http://example.com/image2.jpg",
+            "metadata": None,
+            "similarity": 20,
+        },
+    ]
+    mock_rpc.assert_called_once_with("text_search", ["vit_b32", "cute cat", 10])
+
+
+def test_search_returns_422_whithout_query(mock_rpc):
+    response = client.post(
+        "/models/vit_b32/search",
+        json={},
+    )
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Either 'text' or 'url' must be provided."}
+    mock_rpc.assert_not_called()
+
+
 def test_search_returns_500_when_rpc_error(mock_rpc):
     mock_rpc.side_effect = RuntimeError("Invalid argument")
     response = client.post(

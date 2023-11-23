@@ -176,6 +176,9 @@ components:
           minimum: 1.0
           title: Limit
           type: integer
+        text:
+          title: Text
+          type: string
         url:
           description: "The url serves as the primary key in the Milvus collection.\
             \ For consistancy, image URLs should not have escape characters. Optionally,\
@@ -197,8 +200,6 @@ components:
           example: https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg
           title: URL of the image
           type: string
-      required:
-      - url
       title: SearchParameters
       type: object
     SearchResult:
@@ -312,7 +313,7 @@ info:
     collection. This will later allow to search, or compare other images in this collection.
     Images of each model can also be deleted, listed and counted.
   title: Idios
-  version: 0.0.1
+  version: 0.1.0
 openapi: 3.0.2
 paths:
   /models/{model_name}/add:

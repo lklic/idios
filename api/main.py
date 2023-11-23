@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status, HTTPException, Query
 from pydantic import BaseModel, HttpUrl, confloat, conint
 from enum import Enum
-from typing import Literal
+from typing import Literal, Optional
 
 import json
 
@@ -16,7 +16,7 @@ Idios is a reverse image search application with an HTTP API that allows you to 
 
 It supports several embedding models. Images can be added to each of these models separately. To do so, their embedding will be combuted and indexed in a milvus collection. This will later allow to search, or compare other images in this collection. Images of each model can also be deleted, listed and counted.
 """.strip(),
-    version="0.0.1",
+    version="0.1.0",
     # terms_of_service, contact, licence_info:
     # https://fastapi.tiangolo.com/tutorial/metadata/#metadata-for-api
     openapi_tags=[
@@ -91,7 +91,9 @@ class ImageAndMetada(SingleImage):
     metadata: ImageMetadata | None
 
 
-class SearchParameters(SingleImage):
+class SearchParameters(BaseModel):
+    text: Optional[str]
+    url: Optional[ImageUrl]
     limit: conint(ge=1) = 10
 
 
@@ -237,7 +239,15 @@ async def restore(model_name: ModelName, images: list[DatabaseEntry]):
     response_model=SearchResults,
 )
 async def search(model_name: ModelName, params: SearchParameters):
-    return try_rpc("search", [model_name.value, params.url, params.limit])
+    if params.url:
+        return try_rpc("search", [model_name.value, params.url, params.limit])
+    elif params.text:
+        return try_rpc("text_search", [model_name.value, params.text, params.limit])
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Either 'text' or 'url' must be provided.",
+        )
 
 
 @app.post(
