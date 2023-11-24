@@ -240,9 +240,9 @@ async def restore(model_name: ModelName, images: list[DatabaseEntry]):
 )
 async def search(model_name: ModelName, params: SearchParameters):
     if params.url:
-        return try_rpc("search", [model_name.value, params.url, params.limit])
+        return try_rpc("search_by_url", [model_name.value, params.url, params.limit])
     elif params.text:
-        return try_rpc("text_search", [model_name.value, params.text, params.limit])
+        return try_rpc("search_by_text", [model_name.value, params.text, params.limit])
     else:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -53,13 +53,15 @@ test:
 # The echo commands informally compare the actual to the expected result.
 API_URL=localhost:4213
 integration-test:
-	curl -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
+	curl -s -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
 	@echo =?=[]
 	curl -H "Content-Type: application/json" -d '{"url": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg"}' ${API_URL}/models/vit_b32/add
 	@echo =?=
-	curl -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
+	curl -s -X POST ${API_URL}/models/vit_b32/urls | cut -c 1-100
 	@echo =?=[url]
 	curl -H "Content-Type: application/json" -d '{"url": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg"}' ${API_URL}/models/vit_b32/search
+	@echo =?=[result]
+	curl -H "Content-Type: application/json" -d '{"text": "a black and white text in japanese"}' ${API_URL}/models/vit_b32/search
 	@echo =?=[result]
 	curl -H "Content-Type: application/json" -d '{"url": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg", "other": "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg"}' ${API_URL}/models/vit_b32/compare
 	@echo =?=100

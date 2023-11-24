@@ -44,7 +44,21 @@ def test_crud(mock_model):
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
-    ] == commands["search"](mock_model, TEST_URLS[1])
+    ] == commands["search_by_url"](mock_model, TEST_URLS[1])
+    assert [
+        {
+            "similarity": pytest.approx(29.19090986251831),
+            "metadata": metadata,
+            "url": TEST_URLS[0],
+        }
+    ] == commands["search_by_text"](mock_model, "a black and white text in japanese")
+    assert [
+        {
+            "similarity": pytest.approx(17.36249327659607),
+            "metadata": metadata,
+            "url": TEST_URLS[0],
+        }
+    ] == commands["search_by_text"](mock_model, "a cute colorful cat")
 
     commands["remove_images"](mock_model, [TEST_URLS[0]])
 
@@ -65,9 +79,9 @@ def test_search_more_results(mock_model):
         [None] * 1000,
         [[0] * 512] * 1000,
     )
-    results = commands["search"](mock_model, TEST_URLS[1])
+    results = commands["search_by_url"](mock_model, TEST_URLS[1])
     assert 10 == len(results)
-    results = commands["search"](mock_model, TEST_URLS[1], 100)
+    results = commands["search_by_url"](mock_model, TEST_URLS[1], 100)
     assert 100 == len(results)
     commands["remove_images"](mock_model, urls)
 

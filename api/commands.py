@@ -25,7 +25,10 @@ def insert_images(
 
     new_urls = [url for url in urls if url not in existing_urls]
     image_embeddings = (
-        [embeddings[model_name].extract(load_image_from_url(url)) for url in new_urls]
+        [
+            embeddings[model_name].get_image_embedding(load_image_from_url(url))
+            for url in new_urls
+        ]
         if image_embeddings is None
         else [
             embedding
@@ -53,8 +56,7 @@ def similarity_score(distance):
     return 100 * (1 - distance / 2)
 
 
-def search(model_name, url, limit=10):
-    embedding = embeddings[model_name].extract(load_image_from_url(url))
+def search_by_embedding(model_name, embedding, limit=10):
     search_results = collections[model_name].search(
         data=[embedding],
         anns_field="embedding",
@@ -79,11 +81,21 @@ def search(model_name, url, limit=10):
     ]
 
 
+def search_by_url(model_name, url, limit=10):
+    embedding = embeddings[model_name].get_image_embedding(load_image_from_url(url))
+    return search_by_embedding(model_name, embedding, limit)
+
+
+def search_by_text(model_name, text, limit=10):
+    embedding = embeddings[model_name].get_text_embedding(text)
+    return search_by_embedding(model_name, embedding, limit)
+
+
 def compare(model_name, url_left, url_right):
     # alternatively, we could first try to fetch the embeddings from milvus in
     # case their computation is significantly more expensive than a query
-    left = embeddings[model_name].extract(load_image_from_url(url_left))
-    right = embeddings[model_name].extract(load_image_from_url(url_right))
+    left = embeddings[model_name].get_image_embedding(load_image_from_url(url_left))
+    right = embeddings[model_name].get_image_embedding(load_image_from_url(url_right))
 
     # calc_distance() has been removed from milvus
     # it's a bit overkill anyway if we don't compare with vectors from the db
@@ -140,7 +152,8 @@ def remove_images(model_name, urls):
 
 commands = dict(
     insert_images=insert_images,
-    search=search,
+    search_by_url=search_by_url,
+    search_by_text=search_by_text,
     compare=compare,
     list_images=list_images,
     count=count,

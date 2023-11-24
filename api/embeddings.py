@@ -37,7 +37,7 @@ class CLIP:
         text_embedding = self.model.get_text_features(**inputs)
         text_embedding /= text_embedding.norm(dim=-1, keepdim=True)
         text_embedding = text_embedding.tolist()
-        return text_embedding
+        return text_embedding[0]
 
     @torch.no_grad()
     def get_image_embedding(self, images):
@@ -46,10 +46,7 @@ class CLIP:
         image_embedding = self.model.get_image_features(**inputs)
         image_embedding /= image_embedding.norm(dim=-1, keepdim=True)
         image_embedding = image_embedding.tolist()
-        return image_embedding
-
-    def extract(self, image):
-        return self.get_image_embedding(image)[0]
+        return image_embedding[0]
 
 
 embeddings = {

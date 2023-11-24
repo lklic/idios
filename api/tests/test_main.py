@@ -180,6 +180,7 @@ def test_search_add_image_conflict(mock_rpc):
         },
     )
     assert response.status_code == 409
+    assert response.json() == {"detail": "Image already inserted"}
     mock_rpc.assert_called_once_with(
         "insert_images",
         [
@@ -192,7 +193,7 @@ def test_search_add_image_conflict(mock_rpc):
     )
 
 
-def test_search_success(mock_rpc):
+def test_search_by_url_success(mock_rpc):
     mock_rpc.return_value = [
         {
             "url": "http://example.com/image1.jpg",
@@ -223,11 +224,11 @@ def test_search_success(mock_rpc):
         },
     ]
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg", 10]
+        "search_by_url", ["vit_b32", "http://example.com/query.jpg", 10]
     )
 
 
-def test_search_success_with_limit(mock_rpc):
+def test_search_by_url_success_with_limit(mock_rpc):
     mock_rpc.return_value = [
         {
             "url": "http://example.com/image1.jpg",
@@ -242,7 +243,7 @@ def test_search_success_with_limit(mock_rpc):
     assert response.status_code == 200
     assert len(response.json()) == 100
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg", 100]
+        "search_by_url", ["vit_b32", "http://example.com/query.jpg", 100]
     )
 
 
@@ -255,20 +256,30 @@ def test_search_empty(mock_rpc):
     assert response.status_code == 200
     assert response.json() == []
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg", 10]
+        "search_by_url", ["vit_b32", "http://example.com/query.jpg", 10]
     )
 
 
-def test_search_returns_422_when_invalid_url(mock_rpc):
+def test_search_by_url_returns_422_when_invalid_url(mock_rpc):
     response = client.post(
         "/models/vit_b32/search",
         json={"url": "not_a_url"},
     )
     assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "loc": ["body", "url"],
+                "msg": "invalid or missing URL scheme",
+                "type": "value_error.url.scheme",
+            }
+        ]
+    }
+
     mock_rpc.assert_not_called()
 
 
-def test_search_text_success(mock_rpc):
+def test_search_by_text_success(mock_rpc):
     mock_rpc.return_value = [
         {
             "url": "http://example.com/image1.jpg",
@@ -298,7 +309,24 @@ def test_search_text_success(mock_rpc):
             "similarity": 20,
         },
     ]
-    mock_rpc.assert_called_once_with("text_search", ["vit_b32", "cute cat", 10])
+    mock_rpc.assert_called_once_with("search_by_text", ["vit_b32", "cute cat", 10])
+
+
+def test_search_by_text_success_with_limit(mock_rpc):
+    mock_rpc.return_value = [
+        {
+            "url": "http://example.com/image1.jpg",
+            "metadata": {"tags": ["cat", "cute"]},
+            "similarity": 10,
+        }
+    ] * 100
+    response = client.post(
+        "/models/vit_b32/search",
+        json={"text": "some text", "limit": 100},
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 100
+    mock_rpc.assert_called_once_with("search_by_text", ["vit_b32", "some text", 100])
 
 
 def test_search_returns_422_whithout_query(mock_rpc):
@@ -319,7 +347,7 @@ def test_search_returns_500_when_rpc_error(mock_rpc):
     )
     assert response.status_code == 500
     mock_rpc.assert_called_once_with(
-        "search", ["vit_b32", "http://example.com/query.jpg", 10]
+        "search_by_url", ["vit_b32", "http://example.com/query.jpg", 10]
     )
 
 

@@ -31,16 +31,24 @@ def squared_l2(v):
     return sum([x * x for x in v])
 
 
-def test_extract_vit_b32():
+def test_vit_b32_get_image_embedding():
     random.seed(2023)
     image_data = bytes([random.randint(0, 255) for _ in range(500 * 500 * 3)])
     image = Image.frombytes("RGB", (500, 500), image_data)
 
     b32 = embeddings["vit_b32"]
-    embedding = b32.extract(image)
+    embedding = b32.get_image_embedding(image)
     assert pytest.approx(1) == squared_l2(embedding)
     assert 512 == len(embedding)
     assert pytest.approx(-1.00633253128035) == sum(embedding)
+
+
+def test_vit_b32_get_text_embedding():
+    b32 = embeddings["vit_b32"]
+    embedding = b32.get_text_embedding("some random text")
+    assert pytest.approx(1) == squared_l2(embedding)
+    assert 512 == len(embedding)
+    assert pytest.approx(1.223632167381993) == sum(embedding)
 
 
 @functools.cache
@@ -68,14 +76,14 @@ def batch_test_images():
 def test_individual_extract(benchmark):
     def extract_each():
         for image in batch_test_images():
-            embeddings["vit_b32"].extract(image)
+            embeddings["vit_b32"].get_image_embedding(image)
 
     benchmark(extract_each)
 
 
 @pytest.mark.benchmark
 def test_batch_extract(benchmark):
-    benchmark(embeddings["vit_b32"].extract, batch_test_images())
+    benchmark(embeddings["vit_b32"].get_image_embedding, batch_test_images())
 
 
 def test_unresized_image():
@@ -84,4 +92,4 @@ def test_unresized_image():
     url2 = "https://artresearch-iiif.s3.eu-west-1.amazonaws.com/marburg/gm1159076.jpg"
 
     images = [load_image_from_url(url) for url in [url0, url1, url2]]
-    [embeddings["vit_b32"].extract(image) for image in images]
+    [embeddings["vit_b32"].get_image_embedding(image) for image in images]
