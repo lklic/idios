@@ -3,6 +3,7 @@ import functools
 
 import random
 from PIL import Image
+import math
 
 from ..embeddings import load_image_from_url, embeddings
 
@@ -26,6 +27,10 @@ def test_load_image_from_url_and_reject_small_ones():
     )
 
 
+def squared_l2(v):
+    return sum([x * x for x in v])
+
+
 def test_extract_vit_b32():
     random.seed(2023)
     image_data = bytes([random.randint(0, 255) for _ in range(500 * 500 * 3)])
@@ -33,6 +38,7 @@ def test_extract_vit_b32():
 
     b32 = embeddings["vit_b32"]
     embedding = b32.extract(image)
+    assert pytest.approx(1) == squared_l2(embedding)
     assert 512 == len(embedding)
     assert pytest.approx(-1.00633253128035) == sum(embedding)
 

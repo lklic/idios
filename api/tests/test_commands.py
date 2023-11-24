@@ -40,7 +40,7 @@ def test_crud(mock_model):
 
     assert [
         {
-            "similarity": pytest.approx(11.650939784262505),
+            "similarity": pytest.approx(55.82546989213125),
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
@@ -118,7 +118,7 @@ def test_insert_without_replacing(mock_model):
 
 
 def test_compare():
-    assert pytest.approx(11.650939784262505) == commands["compare"](
+    assert pytest.approx(55.82546989213125) == commands["compare"](
         "vit_b32", TEST_URLS[0], TEST_URLS[1]
     )
 

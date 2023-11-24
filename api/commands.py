@@ -48,6 +48,11 @@ def insert_images(
     }
 
 
+def similarity_score(distance):
+    # 2 is the maximum distance between normalised vectors
+    return 100 * (1 - distance / 2)
+
+
 def search(model_name, url, limit=10):
     embedding = embeddings[model_name].extract(load_image_from_url(url))
     search_results = collections[model_name].search(
@@ -68,7 +73,7 @@ def search(model_name, url, limit=10):
         {
             "url": hit.id,
             "metadata": json.loads(hit.entity.get("metadata")),
-            "similarity": 100 * (1 - hit.distance),
+            "similarity": similarity_score(hit.distance),
         }
         for hit in search_results[0]
     ]
@@ -84,7 +89,7 @@ def compare(model_name, url_left, url_right):
     # it's a bit overkill anyway if we don't compare with vectors from the db
     if metrics[model_name] == "L2":
         # _squared_ L2, to be consistent with the distances in milvus' search
-        return 100 * (1 - np.sum(np.square(np.array(left) - np.array(right))))
+        return similarity_score(np.sum(np.square(np.array(left) - np.array(right))))
 
     raise RuntimeError(
         "Distance calculation has not been implemented in the API. "
