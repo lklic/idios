@@ -13,6 +13,9 @@ FROM base AS dev
 
 USER root
 RUN --mount=type=cache,target=/home/user/.cache/pip chown --recursive user:user /home/user/.cache
+RUN apt-get update && \
+    apt-get install -y libgl1-mesa-glx && \
+    rm -rf /var/lib/apt/lists/*
 
 USER user
 RUN mkdir -p /home/user/.cache/huggingface
@@ -38,6 +41,12 @@ COPY . /app
 
 FROM base AS worker
 
+USER root
+RUN apt-get update && \
+    apt-get install -y libgl1-mesa-glx && \
+    rm -rf /var/lib/apt/lists/*
+
+USER user
 COPY ./requirements-worker.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 

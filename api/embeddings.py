@@ -5,6 +5,9 @@ import torch
 
 from transformers import CLIPModel, CLIPProcessor
 
+import cv2 as cv
+import numpy as np
+
 
 def load_image_from_url(url):
     MIN_SIZE = 150
@@ -49,7 +52,27 @@ class CLIP:
         return image_embedding[0]
 
 
+class Sift:
+    def __init__(self):
+        self.sift = cv.SIFT_create()
+
+    def get_text_embedding(self, text):
+        return []
+
+    def get_image_embedding(self, image):
+        gray = cv.cvtColor(np.array(image), cv.COLOR_RGB2GRAY)
+        keypoints, descriptors = self.sift.detectAndCompute(gray, None)
+
+        sorted_features = sorted(
+            zip(descriptors, keypoints), key=lambda x: x[1].response, reverse=True
+        )
+        top_features = sorted_features[:100]
+
+        return [(descriptor, keypoint.pt) for descriptor, keypoint in top_features]
+
+
 embeddings = {
     "vit_b32": CLIP("openai/clip-vit-base-patch32"),
     # "vit_l14": CLIP("openai/clip-vit-large-patch14"),
+    "sift": Sift(),
 }

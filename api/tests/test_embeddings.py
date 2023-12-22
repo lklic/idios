@@ -51,6 +51,20 @@ def test_vit_b32_get_text_embedding():
     assert pytest.approx(1.223632167381993) == sum(embedding)
 
 
+def test_sift_get_image_embedding():
+    random.seed(2023)
+    image_data = bytes([random.randint(0, 255) for _ in range(500 * 500 * 3)])
+    image = Image.frombytes("RGB", (500, 500), image_data)
+
+    sift = embeddings["sift"]
+    features = sift.get_image_embedding(image)
+    assert len(features) > 1
+    for descriptor, position in features:
+        assert len(position) == 2
+        assert len(descriptor) == 128
+    assert pytest.approx(4372) == sum(features[0][0])
+
+
 @functools.cache
 def batch_test_images():
     batch_test_ids = (

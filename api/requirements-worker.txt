@@ -7,3 +7,4 @@ pymilvus==2.2.5
 torch==2.0.0
 transformers==4.28.1
 Pillow==9.5.0
+opencv-python==4.8.1.78
