@@ -1,6 +1,7 @@
 from ..milvus import (
     ensure_connection,
     get_collection,
+    INDEX_PARAMS,
 )
 
 from pymilvus import (
@@ -10,6 +11,23 @@ from pymilvus import (
 
 import pytest
 import uuid
+from unittest.mock import patch
+
+
+@pytest.fixture
+def mock_index_params():
+    collection_name = "test_collection_to_remove"
+    with patch.dict(
+        INDEX_PARAMS,
+        {
+            collection_name: {
+                "metric_type": "L2",
+                "index_type": "IVF_FLAT",
+                "params": {"nlist": 2048},
+            }
+        },
+    ):
+        yield collection_name
 
 
 def test_ensure_connection():
@@ -26,30 +44,28 @@ def test_ensure_connection():
     assert None != dict(connections.list_connections())["default"]
 
 
-def test_get_collection():
-    collection_name = "test_collection_to_remove"
+def test_get_collection(mock_index_params):
     ensure_connection()  # for utilities
-    if collection_name in utility.list_collections():
-        utility.drop_collection(collection_name)
+    if mock_index_params in utility.list_collections():
+        utility.drop_collection(mock_index_params)
 
-    assert collection_name not in utility.list_collections()
-    collection = get_collection(collection_name, 42)
-    assert collection_name in utility.list_collections()
+    assert mock_index_params not in utility.list_collections()
+    collection = get_collection(mock_index_params, 42)
+    assert mock_index_params in utility.list_collections()
     assert {
         "metric_type": "L2",
         "index_type": "IVF_FLAT",
         "params": {"nlist": 2048},
     } == collection.index()._index_params
-    utility.drop_collection(collection_name)
-    assert collection_name not in utility.list_collections()
+    utility.drop_collection(mock_index_params)
+    assert mock_index_params not in utility.list_collections()
 
 
-def test_query_results_are_sorted_by_pk():
-    collection_name = "test_collection_to_remove"
-    if collection_name in utility.list_collections():
-        utility.drop_collection(collection_name)
-    assert collection_name not in utility.list_collections()
-    collection = get_collection(collection_name, 42)
+def test_query_results_are_sorted_by_pk(mock_index_params):
+    if mock_index_params in utility.list_collections():
+        utility.drop_collection(mock_index_params)
+    assert mock_index_params not in utility.list_collections()
+    collection = get_collection(mock_index_params, 42)
 
     urls = [str(uuid.uuid4()) for _ in range(10)]
     if sorted(urls) == urls:
@@ -66,7 +82,7 @@ def test_query_results_are_sorted_by_pk():
         )
     ]
 
-    utility.drop_collection(collection_name)
+    utility.drop_collection(mock_index_params)
 
 
 N_ENTITIES = 1000
@@ -77,20 +93,18 @@ metadatas = ["null"] * N_ENTITIES
 
 
 @pytest.mark.benchmark
-def test_batch_insert(benchmark):
-    collection_name = "test_collection_to_remove"
+def test_batch_insert(benchmark, mock_index_params):
     ensure_connection()  # for utilities
-    utility.drop_collection(collection_name)
-    collection = get_collection(collection_name, DIM)
+    utility.drop_collection(mock_index_params)
+    collection = get_collection(mock_index_params, DIM)
     benchmark(collection.insert, [urls, embeddings, metadatas])
 
 
 @pytest.mark.benchmark
-def test_individual_insert(benchmark):
-    collection_name = "test_collection_to_remove"
+def test_individual_insert(benchmark, mock_index_params):
     ensure_connection()  # for utilities
-    utility.drop_collection(collection_name)
-    collection = get_collection(collection_name, DIM)
+    utility.drop_collection(mock_index_params)
+    collection = get_collection(mock_index_params, DIM)
 
     def insert_each():
         for params in zip(urls, embeddings, metadatas):

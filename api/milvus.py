@@ -15,6 +15,19 @@ import os
 from common import embedding_dimensions, MAX_METADATA_LENGTH
 
 DEFAULT_ROOT_PASSWORD = "Milvus"
+INDEX_PARAMS = {
+    "vit_b32": {
+        "metric_type": "L2",
+        "index_type": "IVF_FLAT",
+        "params": {"nlist": 2048},
+    },
+    "sift": {
+        "metric_type": "L2",
+        # https://milvus.io/docs/benchmark.md#Test-pipeline
+        "index_type": "HNSW",
+        "params": {"M": 8, "efConstruction": 200},
+    },
+}
 
 
 def ensure_connection():
@@ -80,12 +93,9 @@ def get_collection(collection_name, dim):
     schema = CollectionSchema(fields=fields, description="reverse image search")
     collection = Collection(name=collection_name, schema=schema)
 
-    index_params = {
-        "metric_type": "L2",
-        "index_type": "IVF_FLAT",
-        "params": {"nlist": 2048},
-    }
-    collection.create_index(field_name=embedding_field_name, index_params=index_params)
+    collection.create_index(
+        field_name=embedding_field_name, index_params=INDEX_PARAMS[collection_name]
+    )
 
     collection.load()
     return collection

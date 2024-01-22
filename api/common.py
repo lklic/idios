@@ -1,5 +1,6 @@
 embedding_dimensions = {
     "vit_b32": 512,
+    # "sift": 128,
     # "vit_l14" : 4096,
 }
 

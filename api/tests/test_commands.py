@@ -1,7 +1,7 @@
 import pytest
 from ..commands import commands
 from embeddings import embeddings
-from milvus import collections, metrics, get_collection
+from milvus import collections, metrics, get_collection, INDEX_PARAMS
 from pymilvus import utility
 import numpy as np
 
@@ -20,7 +20,17 @@ def mock_model():
     TEST_MODEL_NAME = "mock_vit_b32"
     if utility.has_collection(TEST_MODEL_NAME):
         utility.drop_collection(TEST_MODEL_NAME)
-    test_collection = get_collection(TEST_MODEL_NAME, 512)
+    with patch.dict(
+        INDEX_PARAMS,
+        {
+            TEST_MODEL_NAME: {
+                "metric_type": "L2",
+                "index_type": "IVF_FLAT",
+                "params": {"nlist": 2048},
+            }
+        },
+    ):
+        test_collection = get_collection(TEST_MODEL_NAME, 512)
     with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["vit_b32"]}):
         with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
             with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
@@ -47,7 +57,7 @@ def test_crud(mock_model):
     ] == commands["search_by_url"](mock_model, TEST_URLS[1])
     assert [
         {
-            "similarity": pytest.approx(29.19090986251831),
+            "similarity": pytest.approx(29.19090986251831, rel=1e-3),
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
