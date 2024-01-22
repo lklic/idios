@@ -23,7 +23,9 @@ parser.add_argument(
 args = parser.parse_args()
 
 output_dir = os.path.dirname(args.output_prefix)
-os.makedirs(output_dir, exist_ok=True)
+if output_dir:
+    os.makedirs(output_dir, exist_ok=True)
+
 
 cursor = ""
 batch_count = 1
