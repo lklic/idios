@@ -28,6 +28,7 @@ def load_image_from_url(url):
 # Based on https://github.com/kingyiusuen/clip-image-search/blob/80e36511dbe1969d3989989b220c27f08d30a530/clip_image_search/clip_feature_extractor.py
 class CLIP:
     def __init__(self, model_name):
+        self.isLocal = False
         self.model = CLIPModel.from_pretrained(model_name)
         self.processor = CLIPProcessor.from_pretrained(model_name)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -52,8 +53,10 @@ class CLIP:
         return image_embedding[0]
 
 
+# Use # of features instead of isLocal
 class Sift:
     def __init__(self):
+        self.isLocal = True
         self.sift = cv.SIFT_create()
 
     def get_text_embedding(self, text):

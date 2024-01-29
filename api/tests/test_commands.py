@@ -9,10 +9,12 @@ from unittest.mock import patch
 
 
 TEST_URLS = [
-    "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg",
-    "https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg",
-    "https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg",
+    "http://imageserver:8000/letter_001.jpg",
+    "http://imageserver:8000/151200%21150872_g.jpg",
+    "http://imageserver:8000/44405790.jpg",
 ]
+
+SMALL_IMAGE = "http://imageserver:8000/128.jpg"
 
 
 @pytest.fixture
@@ -32,6 +34,18 @@ def mock_model():
     ):
         test_collection = get_collection(TEST_MODEL_NAME, 512)
     with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["vit_b32"]}):
+        with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
+            with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
+                yield TEST_MODEL_NAME
+
+
+@pytest.fixture
+def mock_features():
+    TEST_MODEL_NAME = "mock_sift"
+    if utility.has_collection(TEST_MODEL_NAME):
+        utility.drop_collection(TEST_MODEL_NAME)
+    test_collection = get_collection(TEST_MODEL_NAME, 128)
+    with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["sift"]}):
         with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
             with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
                 yield TEST_MODEL_NAME
@@ -75,6 +89,36 @@ def test_crud(mock_model):
     assert [] == commands["list_images"](mock_model)
 
     assert 0 == commands["count"](mock_model)
+
+
+def test_crud_local_features(mock_features):
+    metadata = {"tags": ["text"], "language": "japanese"}
+
+    assert [] == commands["list_images"](mock_features)
+
+    commands["insert_images"](mock_features, [TEST_URLS[0]], [metadata])
+
+    results = commands["list_images"](mock_features)
+    # TODO ?
+    assert 57 == len(results)
+    assert [TEST_URLS[0]] == list(set([result.split("#")[0] for result in results]))
+
+    # TODO ?
+    assert 57 == commands["count"](mock_features)
+
+    assert [
+        {
+            "similarity": pytest.approx(55.82546989213125),
+            "metadata": metadata,
+            "url": TEST_URLS[0],
+        }
+    ] == commands["search_by_url"](mock_features, TEST_URLS[1])
+
+    commands["remove_images"](mock_features, [TEST_URLS[0]])
+
+    assert [] == commands["list_images"](mock_features)
+
+    assert 0 == commands["count"](mock_features)
 
 
 def test_insert_nothing(mock_model):
@@ -149,7 +193,7 @@ def test_compare():
 
 def test_image_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["insert_images"]("vit_b32", ["https://picsum.photos/128"], [None])
+        commands["insert_images"]("vit_b32", [SMALL_IMAGE], [None])
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
@@ -158,7 +202,7 @@ def test_image_too_small():
 
 def test_image_left_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["compare"]("vit_b32", "https://picsum.photos/128", TEST_URLS[1])
+        commands["compare"]("vit_b32", SMALL_IMAGE, TEST_URLS[1])
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
@@ -167,7 +211,7 @@ def test_image_left_too_small():
 
 def test_image_right_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["compare"]("vit_b32", TEST_URLS[0], "https://picsum.photos/128")
+        commands["compare"]("vit_b32", TEST_URLS[0], SMALL_IMAGE)
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"

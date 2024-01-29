@@ -132,6 +132,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      imageserver:
+        condition: service_started
     environment:
       MILVUS_URL: milvus:19530
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
@@ -143,6 +145,20 @@ services:
       options:
         max-size: "10M"
         max-file: "10"
+
+  imageserver:
+    image: idios-dev
+    #build:
+    #  context: ../api
+    #  dockerfile: ../docker/Dockerfile
+    #  target: dev
+    volumes:
+      - ../api/tests/images:/app
+    logging:
+      options:
+        max-size: "10M"
+        max-file: "10"
+    command: python -m http.server
 
 volumes:
   etcd:

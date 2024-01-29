@@ -67,6 +67,7 @@ def get_collection(collection_name, dim):
         collection.load()
         return collection
 
+    # TODO : url+pos ? uint8 ? nlist ?
     embedding_field_name = "embedding"
     fields = [
         FieldSchema(

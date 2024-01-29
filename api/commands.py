@@ -23,6 +23,22 @@ def insert_images(
             )
         ]
 
+    if image_embeddings is None and embeddings[model_name].isLocal:
+        local_urls = []
+        local_embeddings = []
+        local_metadatas = []
+        for url, metadata in zip(urls, metadatas):
+            if url not in existing_urls:
+                for descriptor, point in embeddings[model_name].get_image_embedding(
+                    load_image_from_url(url)
+                ):
+                    local_urls.append(f"{url}#{point[0]}-{point[0]}")
+                    local_embeddings.append(descriptor)
+                    local_metadatas.append(metadata)
+        urls = local_urls
+        image_embeddings = local_embeddings
+        metadatas = local_metadatas
+
     new_urls = [url for url in urls if url not in existing_urls]
     image_embeddings = (
         [
@@ -56,9 +72,9 @@ def similarity_score(distance):
     return 100 * (1 - distance / 2)
 
 
-def search_by_embedding(model_name, embedding, limit=10):
+def search_by_embeddings(model_name, embeddings, limit=10):
     search_results = collections[model_name].search(
-        data=[embedding],
+        data=embeddings,
         anns_field="embedding",
         param={
             "metric_type": metrics[model_name],
@@ -81,14 +97,38 @@ def search_by_embedding(model_name, embedding, limit=10):
     ]
 
 
+def search_by_local_features(model_name, url, limit):
+    descriptors, points = zip(
+        *embeddings[model_name].get_image_embedding(load_image_from_url(url))
+    )
+
+    search_results = collections[model_name].search(
+        data=descriptors,
+        anns_field="embedding",
+        param={
+            "metric_type": metrics[model_name],
+            "params": {
+                "nprobe": 10 * 100  # TODO
+            },  # https://milvus.io/docs/v1.1.1/performance_faq.md
+        },
+        output_fields=["metadata"],
+        limit=limit,
+        expr=None,
+        consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+    )
+    print(results)
+
+
 def search_by_url(model_name, url, limit=10):
+    if embeddings[model_name].isLocal:
+        return search_by_local_features(model_name, url, limit)
     embedding = embeddings[model_name].get_image_embedding(load_image_from_url(url))
-    return search_by_embedding(model_name, embedding, limit)
+    return search_by_embeddings(model_name, [embedding], limit)
 
 
 def search_by_text(model_name, text, limit=10):
     embedding = embeddings[model_name].get_text_embedding(text)
-    return search_by_embedding(model_name, embedding, limit)
+    return search_by_embeddings(model_name, [embedding], limit)
 
 
 def compare(model_name, url_left, url_right):
@@ -96,6 +136,7 @@ def compare(model_name, url_left, url_right):
     # case their computation is significantly more expensive than a query
     left = embeddings[model_name].get_image_embedding(load_image_from_url(url_left))
     right = embeddings[model_name].get_image_embedding(load_image_from_url(url_right))
+    # TODO local
 
     # calc_distance() has been removed from milvus
     # it's a bit overkill anyway if we don't compare with vectors from the db
@@ -148,6 +189,7 @@ def remove_images(model_name, urls):
     # See Boolean Expression Rules for more information.
     # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
     collections[model_name].delete(f"url in {format_url_list(urls)}")
+    # TODO local
 
 
 commands = dict(

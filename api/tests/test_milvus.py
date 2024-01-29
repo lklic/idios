@@ -28,6 +28,7 @@ def mock_index_params():
         },
     ):
         yield collection_name
+import random
 
 
 def test_ensure_connection():
@@ -83,6 +84,30 @@ def test_query_results_are_sorted_by_pk(mock_index_params):
     ]
 
     utility.drop_collection(mock_index_params)
+
+
+def test_query_returns_only_exact_matches():
+    collection_name = "test_collection_to_remove"
+    if collection_name in utility.list_collections():
+        utility.drop_collection(collection_name)
+    assert collection_name not in utility.list_collections()
+    collection = get_collection(collection_name, 42)
+
+    embeddings = [[random.random() for _ in range(42)] for _ in range(10)]
+    for embedding in embeddings:
+        collection.insert([[str(uuid.uuid4())], [embedding], ["null"]])
+
+    assert 1 == len(
+        collection.search(
+            data=[embeddings[0]],
+            anns_field="embedding",
+            param={"nlist": 2048},
+            limit=10,
+            consistency_level="Strong",
+        )
+    )
+
+    utility.drop_collection(collection_name)
 
 
 N_ENTITIES = 1000

@@ -14,7 +14,7 @@ COMPOSE=docker compose -p idios -f docker/docker-compose.${COMPONENT}.yml
 # Avoid the repetition of to start something in the dev container.
 # The dev container has all the dependencies for both the api and the worker,
 # plus development specific tools.
-RUN=${COMPOSE} run --remove-orphans --build --rm dev
+RUN=${COMPOSE} run --remove-orphans --rm dev
 
 # Watch for file changes and runs the `watched` command.
 # This requires entr to be installed on the development system
@@ -26,7 +26,7 @@ watch:
 # By default, it lints, test and regenerate the API reference,
 # but other commands can be specified, either as dependencies
 # or as build command
-watched: black test doc/openapi.yaml
+watched: black test #doc/openapi.yaml
 
 # Start a shell in the dev container
 shell:
@@ -47,6 +47,7 @@ build:
 
 # Runs the tests that need to be rerun, as defined by pytest-testmon
 test:
+	#${COMPOSE} exec dev python -m pytest --testmon --tb=short
 	${RUN} python -m pytest --testmon --tb=short
 
 # Runs an end to end test, calling the API in a way that it interacts with all other components
@@ -105,7 +106,8 @@ rm-volumes:
 compose:
 	${COMPOSE} ${c}
 
-
+dev:
+	${COMPOSE} run --remove-orphans --build --rm dev
 
 ################################################################################
 # Deployment commands
