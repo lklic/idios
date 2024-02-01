@@ -145,6 +145,8 @@ components:
         The enumeration of supported models to extract embeddings from images
       enum:
       - vit_b32
+      - sift20
+      - sift100
       title: ModelName
     Pagination:
       properties:

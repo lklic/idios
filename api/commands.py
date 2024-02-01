@@ -2,7 +2,8 @@ import json
 import numpy as np
 
 from embeddings import load_image_from_url, embeddings
-from milvus import collections, metrics
+from milvus import collections
+from common import INDEX_PARAMS, SEARCH_PARAMS, CARDINALITIES
 
 
 def format_url_list(urls):
@@ -23,7 +24,7 @@ def insert_images(
             )
         ]
 
-    if image_embeddings is None and hasattr(embeddings[model_name], "cardinality"):
+    if image_embeddings is None and CARDINALITIES[model_name] > 1:
         local_urls = []
         local_embeddings = []
         local_metadatas = []
@@ -77,10 +78,8 @@ def search_by_embeddings(model_name, embeddings, limit=10):
         data=embeddings,
         anns_field="embedding",
         param={
-            "metric_type": metrics[model_name],
-            "params": {
-                "nprobe": 64
-            },  # https://milvus.io/docs/v1.1.1/performance_faq.md
+            "metric_type": INDEX_PARAMS[model_name]["metric_type"],
+            "params": SEARCH_PARAMS[model_name],
         },
         output_fields=["metadata"],
         limit=limit,
@@ -107,13 +106,11 @@ def search_by_local_features(model_name, url, limit):
         ],
         anns_field="embedding",
         param={
-            "metric_type": metrics[model_name],
-            "params": {
-                "params": {"ef": limit},  # TODO ?
-            },  # https://milvus.io/docs/v1.1.1/performance_faq.md
+            "metric_type": INDEX_PARAMS[model_name]["metric_type"],
+            "params": SEARCH_PARAMS[model_name],
         },
         output_fields=["metadata"],
-        limit=limit,  # TODO ?
+        limit=limit,
         expr=None,
         consistency_level="Strong",  # https://milvus.io/docs/consistency.md
     )
@@ -130,7 +127,7 @@ def search_by_local_features(model_name, url, limit):
         {
             "url": url,
             "metadata": metadatas[url],
-            "similarity": min(score * 100 / embeddings[model_name].cardinality, 100),
+            "similarity": min(100 * score / CARDINALITIES[model_name], 100),
         }
         for url, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)[
             :limit
@@ -140,7 +137,7 @@ def search_by_local_features(model_name, url, limit):
 
 
 def search_by_url(model_name, url, limit=10):
-    if hasattr(embeddings[model_name], "cardinality"):
+    if CARDINALITIES[model_name] > 1:
         return search_by_local_features(model_name, url, limit)
     embedding = embeddings[model_name].get_image_embedding(load_image_from_url(url))
     return search_by_embeddings(model_name, [embedding], limit)
@@ -159,7 +156,7 @@ def compare(model_name, url_left, url_right):
 
     # calc_distance() has been removed from milvus
     # it's a bit overkill anyway if we don't compare with vectors from the db
-    if metrics[model_name] == "L2":
+    if INDEX_PARAMS[model_name]["metric_type"] == "L2":
         # _squared_ L2, to be consistent with the distances in milvus' search
         return similarity_score(np.sum(np.square(np.array(left) - np.array(right))))
 
@@ -207,7 +204,7 @@ def remove_images(model_name, urls):
     # operators can be used only in query or scalar filtering in vector search.
     # See Boolean Expression Rules for more information.
     # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
-    if hasattr(embeddings[model_name], "cardinality"):
+    if CARDINALITIES[model_name] > 1:
         for url in urls:
             full_urls = [
                 search_result["url"]

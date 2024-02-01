@@ -5,7 +5,7 @@ from typing import Literal, Optional
 
 import json
 
-from common import embedding_dimensions, MAX_METADATA_LENGTH, MAX_MILVUS_PAGINATION
+from common import DIMENSIONS, MAX_METADATA_LENGTH, MAX_MILVUS_PAGINATION
 from rpc_client import RpcClient
 
 
@@ -31,7 +31,7 @@ Endpoints to manipulate the index of images for each embedding model
 )
 
 
-ModelName = Enum("ModelName", {k: k for k in embedding_dimensions.keys()})
+ModelName = Enum("ModelName", {k: k for k in DIMENSIONS.keys()})
 ModelName.__doc__ = (
     "The enumeration of supported models to extract embeddings from images"
 )

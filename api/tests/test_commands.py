@@ -1,7 +1,8 @@
 import pytest
 from ..commands import commands
 from embeddings import embeddings
-from milvus import collections, metrics, get_collection, INDEX_PARAMS
+from milvus import collections, get_collection
+from common import DIMENSIONS, INDEX_PARAMS, SEARCH_PARAMS, CARDINALITIES
 from pymilvus import utility
 import numpy as np
 
@@ -13,51 +14,61 @@ TEST_URLS = [
     "https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg",
     "https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg",
 ]
+SMALL_URL = "https://picsum.photos/128"
 
 
 @pytest.fixture
 def mock_model():
-    TEST_MODEL_NAME = "mock_vit_b32"
+    REAL_MODEL_NAME = "vit_b32"
+    TEST_MODEL_NAME = "mock_" + REAL_MODEL_NAME
     if utility.has_collection(TEST_MODEL_NAME):
         utility.drop_collection(TEST_MODEL_NAME)
+
     with patch.dict(
-        INDEX_PARAMS,
-        {
-            TEST_MODEL_NAME: {
-                "metric_type": "L2",
-                "index_type": "IVF_FLAT",
-                "params": {"nlist": 2048},
-            }
-        },
+        DIMENSIONS, {TEST_MODEL_NAME: DIMENSIONS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        INDEX_PARAMS, {TEST_MODEL_NAME: INDEX_PARAMS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        SEARCH_PARAMS, {TEST_MODEL_NAME: SEARCH_PARAMS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        CARDINALITIES, {TEST_MODEL_NAME: CARDINALITIES[REAL_MODEL_NAME]}
     ):
-        test_collection = get_collection(TEST_MODEL_NAME, 512)
-    with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["vit_b32"]}):
-        with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
-            with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
-                yield TEST_MODEL_NAME
+        with patch.dict(
+            collections,
+            {
+                TEST_MODEL_NAME: get_collection(
+                    TEST_MODEL_NAME, DIMENSIONS[REAL_MODEL_NAME]
+                )
+            },
+        ), patch.dict(embeddings, {TEST_MODEL_NAME: embeddings[REAL_MODEL_NAME]}):
+            yield TEST_MODEL_NAME
 
 
 @pytest.fixture
 def mock_features():
-    TEST_MODEL_NAME = "mock_sift"
+    REAL_MODEL_NAME = "sift20"
+    TEST_MODEL_NAME = "mock_" + REAL_MODEL_NAME
     if utility.has_collection(TEST_MODEL_NAME):
         utility.drop_collection(TEST_MODEL_NAME)
-    # TODO use realmodel
+
     with patch.dict(
-        INDEX_PARAMS,
-        {
-            TEST_MODEL_NAME: {
-                "metric_type": "L2",
-                "index_type": "HNSW",
-                "params": {"M": 8, "efConstruction": 200},
-            }
-        },
+        DIMENSIONS, {TEST_MODEL_NAME: DIMENSIONS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        INDEX_PARAMS, {TEST_MODEL_NAME: INDEX_PARAMS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        SEARCH_PARAMS, {TEST_MODEL_NAME: SEARCH_PARAMS[REAL_MODEL_NAME]}
+    ), patch.dict(
+        CARDINALITIES, {TEST_MODEL_NAME: CARDINALITIES[REAL_MODEL_NAME]}
     ):
-        test_collection = get_collection(TEST_MODEL_NAME, 128)
-    with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["sift20"]}):
-        with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
-            with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
-                yield TEST_MODEL_NAME
+        with patch.dict(
+            collections,
+            {
+                TEST_MODEL_NAME: get_collection(
+                    TEST_MODEL_NAME, DIMENSIONS[REAL_MODEL_NAME]
+                )
+            },
+        ), patch.dict(embeddings, {TEST_MODEL_NAME: embeddings[REAL_MODEL_NAME]}):
+            yield TEST_MODEL_NAME
 
 
 def test_crud(mock_model):
@@ -201,7 +212,7 @@ def test_compare():
 
 def test_image_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["insert_images"]("vit_b32", ["https://picsum.photos/128"], [None])
+        commands["insert_images"]("vit_b32", [SMALL_URL], [None])
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
@@ -210,7 +221,7 @@ def test_image_too_small():
 
 def test_image_left_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["compare"]("vit_b32", "https://picsum.photos/128", TEST_URLS[1])
+        commands["compare"]("vit_b32", SMALL_URL, TEST_URLS[1])
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"
@@ -219,7 +230,7 @@ def test_image_left_too_small():
 
 def test_image_right_too_small():
     with pytest.raises(ValueError) as exc_info:
-        commands["compare"]("vit_b32", TEST_URLS[0], "https://picsum.photos/128")
+        commands["compare"]("vit_b32", TEST_URLS[0], SMALL_URL)
     assert (
         str(exc_info.value)
         == "Images must have their dimensions above 150 x 150 pixels"

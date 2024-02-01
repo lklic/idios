@@ -12,28 +12,9 @@ from pymilvus import (
 
 import os
 
-from common import embedding_dimensions, MAX_METADATA_LENGTH
+from common import DIMENSIONS, MAX_METADATA_LENGTH, INDEX_PARAMS
 
 DEFAULT_ROOT_PASSWORD = "Milvus"
-INDEX_PARAMS = {
-    "vit_b32": {
-        "metric_type": "L2",
-        "index_type": "IVF_FLAT",
-        "params": {"nlist": 2048},
-    },
-    "sift20": {
-        "metric_type": "L2",
-        # https://milvus.io/docs/benchmark.md#Test-pipeline
-        "index_type": "HNSW",
-        "params": {"M": 8, "efConstruction": 200},
-    },
-    "sift100": {
-        "metric_type": "L2",
-        # https://milvus.io/docs/benchmark.md#Test-pipeline
-        "index_type": "HNSW",
-        "params": {"M": 8, "efConstruction": 200},
-    },
-}
 
 
 def ensure_connection():
@@ -113,10 +94,4 @@ def destroy_all_data_from_all_collections_in_the_whole_database():
         utility.drop_collection(c)
 
 
-collections = {
-    name: get_collection(name, dim) for name, dim in embedding_dimensions.items()
-}
-metrics = {
-    name: collection.index()._index_params["metric_type"]
-    for name, collection in collections.items()
-}
+collections = {name: get_collection(name, dim) for name, dim in DIMENSIONS.items()}
