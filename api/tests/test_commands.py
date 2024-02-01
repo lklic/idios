@@ -37,6 +37,29 @@ def mock_model():
                 yield TEST_MODEL_NAME
 
 
+@pytest.fixture
+def mock_features():
+    TEST_MODEL_NAME = "mock_sift"
+    if utility.has_collection(TEST_MODEL_NAME):
+        utility.drop_collection(TEST_MODEL_NAME)
+    # TODO use realmodel
+    with patch.dict(
+        INDEX_PARAMS,
+        {
+            TEST_MODEL_NAME: {
+                "metric_type": "L2",
+                "index_type": "HNSW",
+                "params": {"M": 8, "efConstruction": 200},
+            }
+        },
+    ):
+        test_collection = get_collection(TEST_MODEL_NAME, 128)
+    with patch.dict(embeddings, {TEST_MODEL_NAME: embeddings["sift20"]}):
+        with patch.dict(metrics, {TEST_MODEL_NAME: "L2"}):
+            with patch.dict(collections, {TEST_MODEL_NAME: test_collection}):
+                yield TEST_MODEL_NAME
+
+
 def test_crud(mock_model):
     metadata = {"tags": ["text"], "language": "japanese"}
 
@@ -75,6 +98,35 @@ def test_crud(mock_model):
     assert [] == commands["list_images"](mock_model)
 
     assert 0 == commands["count"](mock_model)
+
+
+def test_crud_local_features(mock_features):
+    metadata = {"tags": ["text"], "language": "japanese"}
+
+    assert [] == commands["list_images"](mock_features)
+
+    commands["insert_images"](mock_features, [TEST_URLS[0]], [metadata])
+
+    results = commands["list_images"](mock_features)
+
+    assert 20 == len(results)
+    assert [TEST_URLS[0]] == list(set([result.split("#")[0] for result in results]))
+
+    assert 20 == commands["count"](mock_features)
+
+    assert [
+        {
+            "similarity": 100,
+            "metadata": metadata,
+            "url": TEST_URLS[0],
+        }
+    ] == commands["search_by_url"](mock_features, TEST_URLS[1])
+
+    commands["remove_images"](mock_features, [TEST_URLS[0]])
+
+    assert [] == commands["list_images"](mock_features)
+
+    assert 0 == commands["count"](mock_features)
 
 
 def test_insert_nothing(mock_model):

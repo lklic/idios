@@ -56,13 +56,13 @@ def test_sift_get_image_embedding():
     image_data = bytes([random.randint(0, 255) for _ in range(500 * 500 * 3)])
     image = Image.frombytes("RGB", (500, 500), image_data)
 
-    sift = embeddings["sift"]
+    sift = embeddings["sift100"]
     features = sift.get_image_embedding(image)
     assert len(features) > 1
-    for descriptor, position in features:
-        assert len(position) == 2
+    for descriptor, location in features:
         assert len(descriptor) == 128
     assert pytest.approx(4372) == sum(features[0][0])
+    assert "256.36_319.86_190.76" == features[0][1]
 
 
 @functools.cache

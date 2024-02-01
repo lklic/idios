@@ -53,11 +53,9 @@ class CLIP:
 
 
 class Sift:
-    def __init__(self):
+    def __init__(self, cardinality):
+        self.cardinality = cardinality
         self.sift = cv.SIFT_create()
-
-    def get_text_embedding(self, text):
-        return []
 
     def get_image_embedding(self, image):
         gray = cv.cvtColor(np.array(image), cv.COLOR_RGB2GRAY)
@@ -66,13 +64,25 @@ class Sift:
         sorted_features = sorted(
             zip(descriptors, keypoints), key=lambda x: x[1].response, reverse=True
         )
-        top_features = sorted_features[:100]
+        top_features = sorted_features[: self.cardinality]
 
-        return [(descriptor, keypoint.pt) for descriptor, keypoint in top_features]
+        return [
+            (
+                descriptor,
+                "_".join(
+                    [
+                        str(round(x, 2))
+                        for x in [keypoint.pt[0], keypoint.pt[1], keypoint.angle]
+                    ]
+                ),
+            )
+            for descriptor, keypoint in top_features
+        ]
 
 
 embeddings = {
     "vit_b32": CLIP("openai/clip-vit-base-patch32"),
     # "vit_l14": CLIP("openai/clip-vit-large-patch14"),
-    "sift": Sift(),
+    "sift20": Sift(20),
+    "sift100": Sift(100),
 }

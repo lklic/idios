@@ -23,6 +23,22 @@ def insert_images(
             )
         ]
 
+    if image_embeddings is None and hasattr(embeddings[model_name], "cardinality"):
+        local_urls = []
+        local_embeddings = []
+        local_metadatas = []
+        for url, metadata in zip(urls, metadatas):
+            if url not in existing_urls:
+                for descriptor, location in embeddings[model_name].get_image_embedding(
+                    load_image_from_url(url)
+                ):
+                    local_urls.append(f"{url}#{location}")
+                    local_embeddings.append(descriptor)
+                    local_metadatas.append(metadata)  # FIXME? wasteful
+        urls = local_urls
+        image_embeddings = local_embeddings
+        metadatas = local_metadatas
+
     new_urls = [url for url in urls if url not in existing_urls]
     image_embeddings = (
         [
@@ -56,9 +72,9 @@ def similarity_score(distance):
     return 100 * (1 - distance / 2)
 
 
-def search_by_embedding(model_name, embedding, limit=10):
+def search_by_embeddings(model_name, embeddings, limit=10):
     search_results = collections[model_name].search(
-        data=[embedding],
+        data=embeddings,
         anns_field="embedding",
         param={
             "metric_type": metrics[model_name],
@@ -81,14 +97,58 @@ def search_by_embedding(model_name, embedding, limit=10):
     ]
 
 
+def search_by_local_features(model_name, url, limit):
+    search_results = collections[model_name].search(
+        data=[
+            feature[0]
+            for feature in embeddings[model_name].get_image_embedding(
+                load_image_from_url(url)
+            )
+        ],
+        anns_field="embedding",
+        param={
+            "metric_type": metrics[model_name],
+            "params": {
+                "params": {"ef": limit},  # TODO ?
+            },  # https://milvus.io/docs/v1.1.1/performance_faq.md
+        },
+        output_fields=["metadata"],
+        limit=limit,  # TODO ?
+        expr=None,
+        consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+    )
+
+    scores = {}
+    metadatas = {}
+    for search_result in search_results:
+        for hit in search_result:
+            url = hit.id.split("#")[0]
+            scores[url] = scores.get(url, 0) + 1
+            if url not in metadatas:
+                metadatas[url] = json.loads(hit.entity.get("metadata"))
+    return [
+        {
+            "url": url,
+            "metadata": metadatas[url],
+            "similarity": min(score * 100 / embeddings[model_name].cardinality, 100),
+        }
+        for url, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)[
+            :limit
+        ]
+        if score > 0  # TODO
+    ]
+
+
 def search_by_url(model_name, url, limit=10):
+    if hasattr(embeddings[model_name], "cardinality"):
+        return search_by_local_features(model_name, url, limit)
     embedding = embeddings[model_name].get_image_embedding(load_image_from_url(url))
-    return search_by_embedding(model_name, embedding, limit)
+    return search_by_embeddings(model_name, [embedding], limit)
 
 
 def search_by_text(model_name, text, limit=10):
     embedding = embeddings[model_name].get_text_embedding(text)
-    return search_by_embedding(model_name, embedding, limit)
+    return search_by_embeddings(model_name, [embedding], limit)
 
 
 def compare(model_name, url_left, url_right):
@@ -147,7 +207,18 @@ def remove_images(model_name, urls):
     # operators can be used only in query or scalar filtering in vector search.
     # See Boolean Expression Rules for more information.
     # https://milvus.io/docs/v2.2.x/delete_data.md?shell#Delete-Entities
-    collections[model_name].delete(f"url in {format_url_list(urls)}")
+    if hasattr(embeddings[model_name], "cardinality"):
+        for url in urls:
+            full_urls = [
+                search_result["url"]
+                for search_result in collections[model_name].query(
+                    f'url like "{url}%"',
+                    consistency_level="Strong",  # https://milvus.io/docs/consistency.md
+                )
+            ]
+            collections[model_name].delete(f"url in {format_url_list(full_urls)}")
+    else:
+        collections[model_name].delete(f"url in {format_url_list(urls)}")
 
 
 commands = dict(

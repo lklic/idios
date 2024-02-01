@@ -21,7 +21,13 @@ INDEX_PARAMS = {
         "index_type": "IVF_FLAT",
         "params": {"nlist": 2048},
     },
-    "sift": {
+    "sift20": {
+        "metric_type": "L2",
+        # https://milvus.io/docs/benchmark.md#Test-pipeline
+        "index_type": "HNSW",
+        "params": {"M": 8, "efConstruction": 200},
+    },
+    "sift100": {
         "metric_type": "L2",
         # https://milvus.io/docs/benchmark.md#Test-pipeline
         "index_type": "HNSW",

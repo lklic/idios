@@ -64,7 +64,7 @@ COPY . /app
 
 
 
-FROM milvusdb/milvus:v2.2.2 AS milvus
+FROM milvusdb/milvus:2.3.0-latest AS milvus
 
 CMD ["milvus", "run", "standalone"]
 HEALTHCHECK --start-period=1s --interval=10s --timeout=1s --retries=5 \
