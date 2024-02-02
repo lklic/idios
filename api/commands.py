@@ -174,7 +174,12 @@ def list_images(model_name, cursor="", limit=None, output_fields=None):
             entry["metadata"] = json.loads(entry["metadata"])
         return entry
 
-    return [
+    # list urls only on local features
+    if output_fields is None and CARDINALITIES[model_name] > 1:
+        if cursor is not None:
+            cursor += "Z"
+
+    results = [
         search_result["url"] if output_fields is None else prepare(search_result)
         for search_result in collections[model_name].query(
             f'url > "{cursor}"',
@@ -183,6 +188,13 @@ def list_images(model_name, cursor="", limit=None, output_fields=None):
             output_fields=output_fields,
         )
     ]
+
+    # list urls only on local features
+    if output_fields is None and CARDINALITIES[model_name] > 1:
+        return list(set([result.split("#")[0] for result in results]))
+
+    # full dump or global features
+    return results
 
 
 def ping():

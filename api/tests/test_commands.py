@@ -118,12 +118,9 @@ def test_crud_local_features(mock_features):
 
     commands["insert_images"](mock_features, [TEST_URLS[0]], [metadata])
 
-    results = commands["list_images"](mock_features)
+    assert [TEST_URLS[0]] == commands["list_images"](mock_features)
 
-    assert 20 == len(results)
-    assert [TEST_URLS[0]] == list(set([result.split("#")[0] for result in results]))
-
-    assert 20 == commands["count"](mock_features)
+    assert 1 == commands["count"](mock_features)
 
     assert [
         {
