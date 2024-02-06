@@ -97,13 +97,27 @@ def search_by_embeddings(model_name, embeddings, limit=10):
 
 
 def search_by_local_features(model_name, url, limit):
-    search_results = collections[model_name].search(
-        data=[
+    # 0.2s
+    features = [
+        result["embedding"]
+        for result in collections[model_name].query(
+            f'url like "{url}#%"',
+            consistency_level="Strong",
+            output_fields=["embedding"],
+        )
+    ]
+
+    # 1.4s
+    if features == []:
+        features = [
             feature[0]
             for feature in embeddings[model_name].get_image_embedding(
                 load_image_from_url(url)
             )
-        ],
+        ]
+
+    search_results = collections[model_name].search(
+        data=features,
         anns_field="embedding",
         param={
             "metric_type": INDEX_PARAMS[model_name]["metric_type"],
