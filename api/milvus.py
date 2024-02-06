@@ -54,7 +54,6 @@ def get_collection(collection_name, dim):
         collection.load()
         return collection
 
-    embedding_field_name = "embedding"
     fields = [
         FieldSchema(
             name="url",
@@ -65,7 +64,7 @@ def get_collection(collection_name, dim):
             auto_id=False,
         ),
         FieldSchema(
-            name=embedding_field_name,
+            name="embedding",
             dtype=DataType.FLOAT_VECTOR,
             description="image embedding vectors",
             dim=dim,
@@ -81,8 +80,12 @@ def get_collection(collection_name, dim):
     collection = Collection(name=collection_name, schema=schema)
 
     collection.create_index(
-        field_name=embedding_field_name, index_params=INDEX_PARAMS[collection_name]
+        field_name="embedding",
+        index_params=INDEX_PARAMS[collection_name],
+        index_name="idx_embedding",
     )
+
+    collection.create_index(field_name="url", index_name="idx_url")
 
     collection.load()
     return collection

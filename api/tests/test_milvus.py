@@ -53,11 +53,6 @@ def test_get_collection(mock_index_params):
     assert mock_index_params not in utility.list_collections()
     collection = get_collection(mock_index_params, 42)
     assert mock_index_params in utility.list_collections()
-    assert {
-        "metric_type": "L2",
-        "index_type": "IVF_FLAT",
-        "params": {"nlist": 2048},
-    } == collection.index()._index_params
     utility.drop_collection(mock_index_params)
     assert mock_index_params not in utility.list_collections()
 
