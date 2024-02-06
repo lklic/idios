@@ -235,7 +235,7 @@ def remove_images(model_name, urls):
             full_urls = [
                 search_result["url"]
                 for search_result in collections[model_name].query(
-                    f'url like "{url}%"',
+                    f'url like "{url}#%"',
                     consistency_level="Strong",  # https://milvus.io/docs/consistency.md
                 )
             ]
