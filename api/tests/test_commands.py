@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 TEST_URLS = [
     "https://iiif.itatti.harvard.edu/iiif/2/yashiro!letters-jp!letter_001.pdf/full/full/0/default.jpg",
-    "https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg",
+    "https://iiif.artresearch.net/iiif/2/zeri!151200!150872_g.jpg/full/full/0/default.jpg",
     "https://ids.lib.harvard.edu/ids/iiif/44405790/full/full/0/native.jpg",
 ]
 SMALL_URL = "https://picsum.photos/128"
@@ -200,6 +200,21 @@ def test_insert_without_replacing(mock_model):
     assert result[1]["embedding"] == [0] * 512
 
     commands["remove_images"](mock_model, [TEST_URLS[0], TEST_URLS[1]])
+
+
+def test_reject_percent_in_url(mock_model):
+    with pytest.raises(RuntimeError) as exc_info:
+        commands["insert_images"](
+            mock_model,
+            [
+                "https://iiif.artresearch.net/iiif/2/zeri!151200%21150872_g.jpg/full/full/0/default.jpg"
+            ],
+            [None],
+            [[0] * 512],
+        )
+    assert str(exc_info.value) == (
+        "Urls containing % are not supported yet. " "Please contact the administrator."
+    )
 
 
 def test_compare():

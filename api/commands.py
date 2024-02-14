@@ -15,6 +15,17 @@ def format_url_list(urls):
 def insert_images(
     model_name, urls, metadatas, image_embeddings=None, replace_existing=True
 ):
+    if any("%" in url for url in urls):
+        # % in a url prevents prefix queries in milvus 2.3 which are used for local features
+        # there are several solution, depending on when and if this causes a problem
+        # - wait for milvus to fix the issue
+        # - decode/encode urls or replace % with a characters that is not allowed in urls
+        # - do not use the url as an id and store the local feature position in an extra column
+        raise RuntimeError(
+            "Urls containing % are not supported yet. "
+            "Please contact the administrator."
+        )
+
     existing_urls = []
     if not replace_existing:
         existing_urls = [
