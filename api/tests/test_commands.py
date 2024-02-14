@@ -122,13 +122,14 @@ def test_crud_local_features(mock_features):
 
     assert 1 == commands["count"](mock_features)
 
+    assert [] == commands["search_by_url"](mock_features, TEST_URLS[2])
     assert [
         {
             "similarity": 100,
             "metadata": metadata,
             "url": TEST_URLS[0],
         }
-    ] == commands["search_by_url"](mock_features, TEST_URLS[1])
+    ] == commands["search_by_url"](mock_features, TEST_URLS[0])
 
     commands["remove_images"](mock_features, [TEST_URLS[0]])
 

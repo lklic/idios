@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 
 from transformers import CLIPModel, CLIPProcessor
+from common import FEATURE_ID_SEPARATOR
 
 import cv2 as cv
 import numpy as np
@@ -69,7 +70,7 @@ class Sift:
         return [
             (
                 descriptor,
-                "_".join(
+                FEATURE_ID_SEPARATOR.join(
                     [
                         str(round(x, 2))
                         for x in [keypoint.pt[0], keypoint.pt[1], keypoint.angle]

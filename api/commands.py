@@ -1,9 +1,10 @@
 import json
 import numpy as np
+import cv2
 
 from embeddings import load_image_from_url, embeddings
 from milvus import collections
-from common import INDEX_PARAMS, SEARCH_PARAMS, CARDINALITIES
+from common import INDEX_PARAMS, SEARCH_PARAMS, CARDINALITIES, FEATURE_ID_SEPARATOR
 
 
 def format_url_list(urls):
@@ -98,26 +99,34 @@ def search_by_embeddings(model_name, embeddings, limit=10):
 
 def search_by_local_features(model_name, url, limit):
     # 0.2s
-    features = [
-        result["embedding"]
-        for result in collections[model_name].query(
-            f'url like "{url}#%"',
-            consistency_level="Strong",
-            output_fields=["embedding"],
+    results = collections[model_name].query(
+        f'url like "{url}#%"',
+        consistency_level="Strong",
+        output_fields=["embedding"],
+    )
+    descriptors = []
+    positions = []
+    for result in results:
+        descriptors.append(result["embedding"])
+        positions.append(
+            [
+                float(c)
+                for c in result["url"].split("#")[1].split(FEATURE_ID_SEPARATOR)[:2]
+            ]
         )
-    ]
 
     # 1.4s
-    if features == []:
-        features = [
-            feature[0]
-            for feature in embeddings[model_name].get_image_embedding(
-                load_image_from_url(url)
+    if descriptors == []:
+        for feature in embeddings[model_name].get_image_embedding(
+            load_image_from_url(url)
+        ):
+            descriptors.append(feature[0])
+            positions.append(
+                [float(c) for c in feature[1].split(FEATURE_ID_SEPARATOR)[:2]]
             )
-        ]
 
     search_results = collections[model_name].search(
-        data=features,
+        data=descriptors,
         anns_field="embedding",
         param={
             "metric_type": INDEX_PARAMS[model_name]["metric_type"],
@@ -129,25 +138,82 @@ def search_by_local_features(model_name, url, limit):
         consistency_level="Strong",  # https://milvus.io/docs/consistency.md
     )
 
-    scores = {}
+    matchings = {}
     metadatas = {}
-    for search_result in search_results:
+    for i, search_result in enumerate(search_results):
+        # Results are sorted by increasing distance, so we only need to take the first
+        # appearance of a url for this feature.
+        # Using a list would allow ratio tests, à la SIFT
+        already_matched = set()
         for hit in search_result:
-            url = hit.id.split("#")[0]
-            scores[url] = scores.get(url, 0) + 1
-            if url not in metadatas:
-                metadatas[url] = json.loads(hit.entity.get("metadata"))
-    return [
-        {
-            "url": url,
-            "metadata": metadatas[url],
-            "similarity": min(100 * score / CARDINALITIES[model_name], 100),
-        }
-        for url, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)[
-            :limit
-        ]
-        if score > 0  # TODO
-    ]
+            url_part, location = hit.id.split("#")
+            if url_part not in metadatas:
+                metadatas[url_part] = json.loads(hit.entity.get("metadata"))
+            if url_part not in already_matched:
+                matchings[url_part] = matchings.get(url_part, []) + [
+                    [
+                        positions[i],
+                        [float(c) for c in location.split(FEATURE_ID_SEPARATOR)[:2]],
+                    ]
+                ]
+                already_matched.add(url_part)
+
+    results = []
+    for url_part, matching in matchings.items():
+        n_matching = len(matching)
+
+        if n_matching < 4:
+            continue
+
+        M, mask = cv2.findHomography(
+            np.array([m[0] for m in matching]),
+            np.array([m[1] for m in matching]),
+            cv2.RANSAC,
+            5.0,
+        )
+
+        n_inliers = np.count_nonzero(mask)
+
+        inliers_ratio = n_inliers / n_matching
+        if inliers_ratio < 0.50:
+            # print("Too many outliers")
+            continue
+
+        if np.linalg.det(M) == 0:
+            # print("homography is singular")
+            continue
+
+        if abs(1 - np.linalg.cond(M[0:2, 0:2])) > 0.1:
+            # print(
+            #     "condition number of the top-left 2x2 sub-matrix"
+            #     "is too far from a pure rotation"
+            # )
+            continue
+
+        if np.any(np.abs(M[2, 0:2]) > 0.1):
+            # print("perspective parameters are too high")
+            continue
+
+        # Other possible checks:
+        # whether the translation part is within than a threshold
+        # t = np.linalg.norm(M[0:2, 2])
+        # whether the scale factor is reasonnable
+        # s = M[2, 2]
+
+        results.append(
+            {
+                "url": url_part,
+                "metadata": metadatas[url],
+                "similarity": 100 * inliers_ratio,
+            }
+        )
+
+    # In theory we could have more than limit results,
+    # in practice filtering will avoid that
+    # results = sorted(results.items(), key=lambda x: x["similarity"], reverse=True)[
+    #     :limit
+    # ]
+    return results
 
 
 def search_by_url(model_name, url, limit=10):
