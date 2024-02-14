@@ -32,10 +32,10 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # If running behind a proxy like Nginx or Traefik add --proxy-headers
 CMD ["uvicorn", "main:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "4213"]
-HEALTHCHECK --start-period=1s --interval=10s --timeout=1s --retries=5 \
+HEALTHCHECK --start-period=10s --interval=10s --timeout=1s --retries=5 \
   CMD curl -f http://localhost:4213/ping || exit 1
 
-COPY . /app
+COPY main.py common.py rpc_client.py /app
 
 
 
@@ -51,7 +51,7 @@ COPY ./requirements-worker.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 # Download models
-COPY ./embeddings.py /app/
+COPY common.py embeddings.py /app/
 RUN python embeddings.py
 
 ENV PYTHONUNBUFFERED=1
@@ -60,7 +60,7 @@ CMD ["python", "worker.py"]
 HEALTHCHECK --start-period=5s --interval=5s --timeout=5s --retries=5 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-COPY . /app
+COPY worker.py commands.py milvus.py /app
 
 
 

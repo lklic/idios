@@ -8,8 +8,11 @@ default:
 # The default docker compose configuration file is the development one
 COMPONENT=dev
 
+# The docker compose project to allow multiple deployments on the same machine
+PROJECT=$(shell basename $(PWD))
+
 # Avoid the repetition of docker compose parameter
-COMPOSE=docker compose -p idios -f docker/docker-compose.${COMPONENT}.yml
+COMPOSE=docker compose -p ${PROJECT} -f docker/docker-compose.${COMPONENT}.yml
 
 # Avoid the repetition of to start something in the dev container.
 # The dev container has all the dependencies for both the api and the worker,
@@ -46,8 +49,8 @@ build:
 	${COMPOSE} build --progress=plain
 
 # Runs the tests that need to be rerun, as defined by pytest-testmon
-test:
-	${RUN} python -m pytest --testmon --tb=short
+test: up
+	${COMPOSE} exec dev python -m pytest -x -v --testmon --tb=short
 
 # Runs an end to end test, calling the API in a way that it interacts with all other components
 # The echo commands informally compare the actual to the expected result.
@@ -80,7 +83,7 @@ destroy-milvus:
 
 # Starts the whole development environment
 up:
-	${COMPOSE} up --build --remove-orphans -d
+	${COMPOSE} up --build --remove-orphans -d --wait
 
 # Stops and tear down the development environment
 down:
