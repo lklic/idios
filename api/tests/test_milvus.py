@@ -1,8 +1,9 @@
 from ..milvus import (
     ensure_connection,
     get_collection,
-    INDEX_PARAMS,
 )
+
+from common import INDEX_PARAMS
 
 from pymilvus import (
     connections,
