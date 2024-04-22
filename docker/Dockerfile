@@ -17,14 +17,18 @@ RUN --mount=type=cache,target=/home/user/.cache/pip chown --recursive user:user 
 USER user
 RUN mkdir -p /home/user/.cache/huggingface
 COPY requirements*.txt /tmp
-RUN --mount=type=cache,target=/home/user/.cache/pip pip install -r /tmp/requirements-dev.txt
+#RUN --mount=type=cache,target=/home/user/.cache/pip pip install -r /tmp/requirements-dev.txt
+RUN --mount=type=cache,target=/home/user/.cache/pip \
+    pip install --no-cache-dir --find-links=https://download.pytorch.org/whl/torch_stable.html -r /tmp/requirements-dev.txt
 
 
 
 FROM base AS api
 
 COPY ./requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+#RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade \
+    --find-links=https://download.pytorch.org/whl/torch_stable.html -r /app/requirements.txt
 
 
 # If running behind a proxy like Nginx or Traefik add --proxy-headers
@@ -39,7 +43,10 @@ COPY . /app
 FROM base AS worker
 
 COPY ./requirements-worker.txt /app/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+#RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade \
+    --find-links=https://download.pytorch.org/whl/torch_stable.html -r /app/requirements.txt
+
 
 # Download models
 COPY ./embeddings.py /app/

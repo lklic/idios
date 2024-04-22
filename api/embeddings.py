@@ -2,6 +2,8 @@ import requests
 from PIL import Image
 
 import torch
+import torchvision.models as models
+import torchvision.transforms as transforms
 
 from transformers import CLIPModel, CLIPProcessor
 
@@ -48,8 +50,33 @@ class CLIP:
         image_embedding = image_embedding.tolist()
         return image_embedding[0]
 
+class ResNet50:
+    def __init__(self):
+        self.model = models.resnet50(pretrained=True)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # We use only the part up to the AdaptiveAvgPool2d layer (included)
+        self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
+        self.model.to(self.device)
+        self.model.eval()
+
+        self.transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+
+    @torch.no_grad()
+    def get_image_embedding(self, image):
+        image = self.transform(image).unsqueeze(0).to(self.device)
+        features = self.model(image)
+        # Flatten the output to a single vector of 2048 dimensions
+        features = features.view(features.size(0), -1)  # This reshapes the tensor to [1, 2048]
+        return features.squeeze().tolist()  # Squeeze to remove the batch dimension and convert to list
+
 
 embeddings = {
     "vit_b32": CLIP("openai/clip-vit-base-patch32"),
     # "vit_l14": CLIP("openai/clip-vit-large-patch14"),
+    "resnet50": ResNet50(),
 }

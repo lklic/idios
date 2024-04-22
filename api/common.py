@@ -1,6 +1,8 @@
 embedding_dimensions = {
     "vit_b32": 512,
     # "vit_l14" : 4096,
+    "resnet50": 2048,  # Embedding dimension for ResNet50
+
 }
 
 MAX_METADATA_LENGTH = 65535

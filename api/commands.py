@@ -52,8 +52,10 @@ def insert_images(
 
 
 def similarity_score(distance):
-    # 2 is the maximum distance between normalised vectors
-    return 100 * (1 - distance / 2)
+    # Assuming distance ranges from 0 to 2, normalize to range 0 to 100
+    # Clamp the result to be within 0 to 100
+    score = 100 * (1 - distance / 2)
+    return max(0, min(100, score))  # Ensure the score is between 0 and 100
 
 
 def search_by_embedding(model_name, embedding, limit=10):

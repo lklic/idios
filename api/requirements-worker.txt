@@ -4,6 +4,13 @@ pymilvus==2.2.5
 
 #--find-links https://download.pytorch.org/whl/torch_stable.html
 #torch==2.0.0+cpu
-torch==2.0.0
+
+#torch==2.0.0
+#torchvision==0.15
+
+torch==2.0.0+cu117 --find-links https://download.pytorch.org/whl/torch_stable.html
+torchvision==0.15.0+cu117 --find-links https://download.pytorch.org/whl/torch_stable.html
+
+
 transformers==4.28.1
 Pillow==9.5.0
