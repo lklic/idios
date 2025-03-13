@@ -232,6 +232,38 @@ async def restore(model_name: ModelName, images: list[DatabaseEntry]):
     )
 
 
+class BulkInsertResult(BaseModel):
+    added: list[ImageUrl]
+    found: list[ImageUrl]
+    failed: list[dict]
+
+
+@app.post(
+    "/models/{model_name}/add_bulk",
+    status_code=status.HTTP_200_OK,
+    tags=["model"],
+    summary="""
+Adds multiple images to the index at once.
+Existing urls will have their metadata replaced with the provided ones.
+Returns lists of successfully added URLs, existing URLs, and failed URLs with error messages.
+    """.strip(),
+    response_model=BulkInsertResult
+)
+async def add_bulk(model_name: ModelName, images: list[ImageAndMetada]):
+    result = try_rpc(
+        "insert_images",
+        [
+            model_name.value,
+            [image.url for image in images],
+            [check_json_string_length(image.metadata) for image in images],
+            None,  # No pre-computed embeddings
+            True,   # Replace existing
+            False,  # Don't fail on error, continue processing
+        ],
+    )
+    return result
+
+
 @app.post(
     "/models/{model_name}/search",
     tags=["model"],

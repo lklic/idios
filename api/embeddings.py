@@ -41,7 +41,10 @@ class CLIP:
 
     @torch.no_grad()
     def get_image_embedding(self, images):
-        inputs = self.processor(images=images, return_tensors="pt")
+        # Ensure image is a list since processor expects a batch    
+        if not isinstance(images, list):         
+            images= [images] 
+        inputs = self.processor(images=images, return_tensors="pt", padding=True)
         inputs = inputs.to(self.device)
         image_embedding = self.model.get_image_features(**inputs)
         image_embedding /= image_embedding.norm(dim=-1, keepdim=True)

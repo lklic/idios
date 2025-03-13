@@ -69,16 +69,19 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      worker:
+      worker_1:
         condition: service_healthy
+      worker_2:
+        condition: service_healthy
+
     environment:
-      WEB_CONCURRENCY: 16
+      WEB_CONCURRENCY: 3
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     volumes:
       - ../api:/app
     ports:
       - 4213:4213
-    command: "uvicorn main:app --reload --host 0.0.0.0 --port 4213"
+    command: "uvicorn main:app --workers 5 --host 0.0.0.0 --port 4213"
     logging:
       options:
         max-size: "10M"
@@ -103,7 +106,7 @@ services:
         max-size: "10M"
         max-file: "10"
 
-  worker:
+  worker_1: &worker_1
     build:
       context: ../api
       dockerfile: ../docker/Dockerfile
@@ -121,6 +124,9 @@ services:
       options:
         max-size: "10M"
         max-file: "10"
+
+  worker_2:
+    <<: *worker_1
 
   dev:
     build:

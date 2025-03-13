@@ -11,7 +11,7 @@ def format_url_list(urls):
 
 
 def insert_images(
-    model_name, urls, metadatas, image_embeddings=None, replace_existing=True
+    model_name, urls, metadatas, image_embeddings=None, replace_existing=True, fail_on_error=True
 ):
     existing_urls = []
     if not replace_existing:
@@ -24,30 +24,51 @@ def insert_images(
         ]
 
     new_urls = [url for url in urls if url not in existing_urls]
-    image_embeddings = (
-        [
-            embeddings[model_name].get_image_embedding(load_image_from_url(url))
-            for url in new_urls
-        ]
-        if image_embeddings is None
-        else [
-            embedding
-            for url, embedding in zip(urls, image_embeddings)
-            if url not in existing_urls
-        ]
-    )
-    metadatas = [
-        json.dumps(metadata)
-        for url, metadata in zip(urls, metadatas)
-        if url not in existing_urls
-    ]
+    
+    # Handle individual image failures
+    successful_urls = []
+    failed_urls = []
+    computed_embeddings = []
+    processed_metadatas = []
+    
+    if image_embeddings is None:
+        # Process each image individually
+        for i, url in enumerate(new_urls):
+            try:
+                embedding = embeddings[model_name].get_image_embedding(load_image_from_url(url))
+                computed_embeddings.append(embedding)
+                processed_metadatas.append(json.dumps(metadatas[urls.index(url)]))
+                successful_urls.append(url)
+            except Exception as e:
+                if fail_on_error:
+                    # Original behavior: propagate the exception
+                    raise
+                else:
+                    # New behavior: collect the error and continue
+                    failed_urls.append({"url": url, "error": str(e)})
+    else:
+        # Use provided embeddings
+        for url, embedding in zip(urls, image_embeddings):
+            if url not in existing_urls:
+                try:
+                    computed_embeddings.append(embedding)
+                    processed_metadatas.append(json.dumps(metadatas[urls.index(url)]))
+                    successful_urls.append(url)
+                except Exception as e:
+                    if fail_on_error:
+                        # Original behavior: propagate the exception
+                        raise
+                    else:
+                        # New behavior: collect the error and continue
+                        failed_urls.append({"url": url, "error": str(e)})
 
-    if len(new_urls) > 0:
-        collections[model_name].insert([new_urls, image_embeddings, metadatas])
+    if len(successful_urls) > 0:
+        collections[model_name].insert([successful_urls, computed_embeddings, processed_metadatas])
 
     return {
-        "added": new_urls,
+        "added": successful_urls,
         "found": existing_urls,
+        "failed": failed_urls,
     }
 
 
